@@ -228,39 +228,52 @@ export function HistoryPage() {
       {/* WRAPPER DENGAN MARGIN DINAMIS */}
       <div className={`transition-all duration-300 ${isSidebarOpen ? 'ml-72' : 'ml-0'}`}>
         
-        {/* Navigation Bar */}
-        <nav className="bg-white shadow-md sticky top-0 z-30">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg">
-                  <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
-                    DiaCARES
-                  </h1>
-                  <p className="text-xs text-gray-500">Diabetes Care & Risk Evaluation</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Link to="/history">
-                  <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
-                    <ClockIcon className="w-4 h-4 mr-2" />
-                    Riwayat
-                  </Button>
-                </Link>
-                <Link to="/assessment">
-                  <Button className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg">
-                    <Activity className="w-4 h-4 mr-2" />
-                    Asesmen Baru
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </nav>
+      {/* Navigation Bar */}
+<nav className="bg-white shadow-md sticky top-0 z-30">
+  <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-3">
+      
+      {/* Logo & Title - Responsive */}
+      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+        {/* Logo - Ukuran Responsive */}
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg flex-shrink-0">
+          <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
+        </div>
+        
+        {/* Title - Responsive */}
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent truncate">
+            DiaCARES
+          </h1>
+          <p className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">
+            Diabetes Care & Risk Evaluation
+          </p>
+        </div>
+      </div>
 
+      {/* Buttons - Vertical di Mobile, Horizontal di Desktop */}
+      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <Link to="/history" className="w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto py-2"
+          >
+            <ClockIcon className="w-4 h-4 mr-2" />
+            Riwayat
+          </Button>
+        </Link>
+        <Link to="/assessment" className="w-full sm:w-auto">
+          <Button 
+            className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg w-full sm:w-auto py-2"
+          >
+            <Activity className="w-4 h-4 mr-2" />
+            Asesmen Baru
+          </Button>
+        </Link>
+      </div>
+    </div>
+  </div>
+</nav>
         {/* Main Content */}
         <div className="p-6">
           {/* Header dengan Tombol Kembali */}

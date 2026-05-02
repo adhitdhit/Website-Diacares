@@ -4,28 +4,34 @@ import cors from 'cors';
 import axios from 'axios';
 
 const app = express();
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Koneksi MongoDB
-const MONGO_URI = "mongodb+srv://dbUser:admin@cluster0.toqswqk.mongodb.net/Database?retryWrites=true&w=majority";
+// ✅ SIMPAN DB INSTANCE DI VARIABLE GLOBAL
+let db;
+
+const MONGO_URI = "mongodb://dbUser:admin@ac-xmhlfy4-shard-00-00.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-01.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-02.toqswqk.mongodb.net:27017/Database?ssl=true&replicaSet=atlas-4dejvt-shard-0&authSource=admin&appName=Cluster0";
 
 mongoose.connect(MONGO_URI)
-  .then(() => {
+  .then((connection) => {
     console.log('✅ Connected to MongoDB');
     console.log('📂 Database: Database');
+    // ✅ SIMPAN DB INSTANCE
+    db = connection.connection.db;
+    console.log('🗄️ Database instance ready');
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
 
-// === ROUTE 1: GET stats (dari Database 2) ===
+// === ROUTE 1: GET stats ===
 app.get('/api/stats', async (req, res) => {
   try {
-    const db = mongoose.connection.db;
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database not connected' });
+    }
+    
     const collection = db.collection('Database 2');
     
     const total = await collection.countDocuments({});
@@ -47,12 +53,14 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
-// === ROUTE 2: GET data (dari Database 2) ===
+// === ROUTE 2: GET data ===
 app.get('/api/data', async (req, res) => {
   try {
-    const db = mongoose.connection.db;
-    const collection = db.collection('Database 2');
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database not connected' });
+    }
     
+    const collection = db.collection('Database 2');
     const query = req.query.split ? { Split: req.query.split } : {};
     const data = await collection.find(query).toArray();
     
@@ -63,53 +71,97 @@ app.get('/api/data', async (req, res) => {
   }
 });
 
+// === ROUTE 3: GET feature-means ===
+app.get('/api/feature-means', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database not connected' });
+    }
+    
+    const collection = db.collection('Database 2');
+    
+    const stats = await collection.aggregate([
+      {
+        $group: {
+          _id: null,
+          meanGlucose: { $avg: '$Glucose' },
+          meanBloodPressure: { $avg: '$BloodPressure' },
+          meanBMI: { $avg: '$BMI' },
+          meanInsulin: { $avg: '$Insulin' },
+          meanPregnancies: { $avg: '$Pregnancies' },
+          meanSkinThickness: { $avg: '$SkinThickness' },
+          meanDPF: { $avg: '$DiabetesPedigreeFunction' },
+          meanAge: { $avg: '$Age' }
+        }
+      }
+    ]).toArray();
 
+    const means = stats[0] || {};
+    
+    const fallbackMeans = {
+      Glucose: 120.9,
+      BloodPressure: 69.1,
+      BMI: 31.9,
+      Insulin: 79.8,
+      Pregnancies: 3.8,
+      SkinThickness: 20.5,
+      DiabetesPedigreeFunction: 0.47,
+      Age: 33.2
+    };
 
-// === ROUTE 3: POST predict (PANGGIL VERCEL API) ===
+    res.json({
+      success: true,
+      means: {
+        Glucose: means.meanGlucose ?? fallbackMeans.Glucose,
+        BloodPressure: means.meanBloodPressure ?? fallbackMeans.BloodPressure,
+        BMI: means.meanBMI ?? fallbackMeans.BMI,
+        Insulin: means.meanInsulin ?? fallbackMeans.Insulin,
+        Pregnancies: means.meanPregnancies ?? fallbackMeans.Pregnancies,
+        SkinThickness: means.meanSkinThickness ?? fallbackMeans.SkinThickness,
+        DiabetesPedigreeFunction: means.meanDPF ?? fallbackMeans.DiabetesPedigreeFunction,
+        Age: means.meanAge ?? fallbackMeans.Age
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error calculating means:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// === ROUTE 4: POST predict ===
 app.post('/api/predict', async (req, res) => {
   try {
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database not connected' });
+    }
+
     const transactionId = req.body.transactionId || `txn_${Date.now()}`;
     console.log(`📥 [${transactionId}] Received predict request`);
 
-    // Ambil data dari request
     const {
       Glucose, Age, BloodPressure, BMI, Insulin,
       Pregnancies, SkinThickness, DiabetesPedigreeFunction,
-      glucose, age, bloodPressure, bmi, insulin,
-      pregnancies, skinThickness, diabetesPedigreeFunction,
       patientName, patientGender, source
     } = req.body;
 
-    const g = Glucose ?? glucose;
-    const a = Age ?? age;
-    const bp = BloodPressure ?? bloodPressure;
-    const b = BMI ?? bmi;
-    const i = Insulin ?? insulin;
-    const p = Pregnancies ?? pregnancies;
-    const st = SkinThickness ?? skinThickness;
-    const dpf = DiabetesPedigreeFunction ?? diabetesPedigreeFunction;
+    // Kirim data mentah (null tetap null)
+    const mlPayload = {
+      Pregnancies: Pregnancies ?? null,
+      Glucose: Glucose ?? null,
+      BloodPressure: BloodPressure ?? null,
+      SkinThickness: SkinThickness ?? null,
+      Insulin: Insulin ?? null,
+      BMI: BMI ?? null,
+      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? null,
+      Age: Age ?? null
+    };
 
-    // Validasi
-    if (g === undefined || g === null || a === undefined || a === null) {
-      return res.status(400).json({ success: false, error: 'Glucose dan Age wajib diisi' });
-    }
+    console.log('📤 Sending RAW data to ML API:', mlPayload);
 
-    // ✅ PANGGIL VERCEL API
     const VERCEL_API_URL = 'https://diabetes-ml-api-lyart.vercel.app/predict';
     
-    console.log(`🤖 Calling ML API: ${VERCEL_API_URL}`);
-    
-    const mlApiResponse = await axios.post(VERCEL_API_URL, {
-      Pregnancies: p ?? 0,
-      Glucose: g,
-      BloodPressure: bp ?? 0,
-      SkinThickness: st ?? 0,
-      Insulin: i ?? 0,
-      BMI: b ?? 0,
-      DiabetesPedigreeFunction: dpf ?? 0,
-      Age: a
-    }, {
-      timeout: 15000 // 15 detik timeout
+    const mlApiResponse = await axios.post(VERCEL_API_URL, mlPayload, {
+      timeout: 15000
     });
 
     if (!mlApiResponse.data.success) {
@@ -119,70 +171,68 @@ app.post('/api/predict', async (req, res) => {
     const { prediction, probability, riskScore, riskLevel, recommendations } = mlApiResponse.data;
 
     // Simpan ke MongoDB
-    const db = mongoose.connection.db;
     const PredictionCollection = db.collection('Database_3');
     
     const newPrediction = {
       patientName: patientName || 'Tanpa Nama',
       patientGender: patientGender || 'Tidak Diketahui',
-      Pregnancies: p ?? 0,
-      Glucose: g,
-      BloodPressure: bp ?? 0,
-      SkinThickness: st ?? 0,
-      Insulin: i ?? 0,
-      BMI: b ?? 0,
-      DiabetesPedigreeFunction: dpf ?? 0,
-      Age: a,
+      
+      Pregnancies: Pregnancies ?? null,
+      Glucose: Glucose ?? null,
+      BloodPressure: BloodPressure ?? null,
+      SkinThickness: SkinThickness ?? null,
+      Insulin: Insulin ?? null,
+      BMI: BMI ?? null,
+      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? null,
+      Age: Age ?? null,
+      
       Prediction_Result: prediction,
       Risk_Score: riskScore,
       Risk_Level: riskLevel,
       Recommendations: recommendations,
       Probability: probability,
+      
       source: source || 'web_app',
       status: 'completed',
       transactionId: transactionId,
       createdAt: new Date()
     };
 
-  
     const saved = await PredictionCollection.insertOne(newPrediction);
+    console.log(`✅ [${transactionId}] Saved to Database_3:`, saved.insertedId);
 
-console.log(`✅ [${transactionId}] Saved: ${patientName}`, saved.insertedId); // Debug log
-
-res.json({
-  success: true,
-  savedId: saved.insertedId.toString(), // ✅ WAJIB .toString()!
-  transactionId: transactionId,
-  prediction: prediction,
-  probability: probability,
-  riskScore: riskScore,
-  riskLevel: riskLevel,
-  recommendations: recommendations,
-  message: 'Prediksi berhasil!'
-});
+    res.json({
+      success: true,
+      savedId: saved.insertedId.toString(),
+      transactionId: transactionId,
+      prediction,
+      probability,
+      riskScore,
+      riskLevel,
+      recommendations,
+      message: 'Prediksi berhasil!'
+    });
 
   } catch (error) {
     console.error('❌ Error POST /api/predict:', error.message);
     
     if (error.code === 'ECONNABORTED') {
-      return res.status(504).json({ 
-        success: false, 
-        error: 'ML API timeout. Silakan coba lagi.' 
-      });
+      return res.status(504).json({ success: false, error: 'ML API timeout.' });
     }
     
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// === ROUTE 4: GET prediction by ID (untuk cek status hasil) ===
+// === ROUTE 5: GET prediction by ID ===
 app.get('/api/prediction/:id', async (req, res) => {
   try {
+    // ✅ CEK DB CONNECTION
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database not connected' });
+    }
+
     const { id } = req.params;
-    const db = mongoose.connection.db;
     const collection = db.collection('Database_3');
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -204,20 +254,20 @@ app.get('/api/prediction/:id', async (req, res) => {
   }
 });
 
-
-// === ROUTE 5 : GET ALL HISTORY ===
+// === ROUTE 6: GET ALL HISTORY ===
 app.get('/api/history', async (req, res) => {
   try {
-    const db = mongoose.connection.db;
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database not connected' });
+    }
+
     const PredictionCollection = db.collection('Database_3');
     
-    // Ambil semua data, urutkan dari yang terbaru
     const history = await PredictionCollection.find({})
-      .sort({ createdAt: -1 }) // Terbaru di atas
-      .limit(50) // Ambil 50 data terakhir
+      .sort({ createdAt: -1 })
+      .limit(50)
       .toArray();
     
-    // Convert ObjectId ke string
     const formattedHistory = history.map(doc => ({
       ...doc,
       _id: doc._id.toString()
@@ -233,21 +283,20 @@ app.get('/api/history', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error fetching history:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// === ROUTE 6 : GET HISTORY BY PATIENT NAME ===
+// === ROUTE 7: GET HISTORY BY PATIENT NAME ===
 app.get('/api/history/:patientName', async (req, res) => {
   try {
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database not connected' });
+    }
+
     const { patientName } = req.params;
-    const db = mongoose.connection.db;
     const PredictionCollection = db.collection('Database_3');
     
-    // Cari berdasarkan nama pasien (case insensitive)
     const history = await PredictionCollection.find({
       patientName: { $regex: patientName, $options: 'i' }
     })
@@ -270,13 +319,9 @@ app.get('/api/history/:patientName', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error fetching patient history:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
-
 
 // Start server
 const PORT = process.env.PORT || 5000;
@@ -285,6 +330,8 @@ app.listen(PORT, () => {
   console.log(`📡 API Endpoints:`);
   console.log(`   GET  /api/stats`);
   console.log(`   GET  /api/data`);
+  console.log(`   GET  /api/feature-means`);
   console.log(`   POST /api/predict`);
   console.log(`   GET  /api/prediction/:id`);
+  console.log(`   GET  /api/history`);
 });

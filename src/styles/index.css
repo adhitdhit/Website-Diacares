@@ -96,3 +96,44 @@ textarea:focus {
 [class*="bg-white"]:hover {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
+
+/* === FIX HEADER DI MOBILE (BIAR GAK KEPOTONG) === */
+@media screen and (max-width: 640px) {
+  /* Header container lebih rapat */
+  header, nav, [class*="Header"], [class*="Navbar"] {
+    padding: 0.5rem 0.75rem !important;
+    gap: 0.4rem !important;
+  }
+  
+  /* Sembunyikan subtitle/deskripsi di mobile */
+  header p:not(.font-bold), 
+  .subtitle, 
+  .description, 
+  [class*="desc"] {
+    display: none !important;
+  }
+  
+  /* Perkecil judul/logo */
+  header h1, header h2, .logo-text {
+    font-size: 1rem !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Tombol navigasi: perkecil padding & font */
+  header button, 
+  header a, 
+  [class*="Button"], 
+  [class*="btn"] {
+    padding: 0.35rem 0.6rem !important;
+    font-size: 0.7rem !important;
+    min-height: auto !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Kalau tombol ada icon + text, sembunyikan text di mobile (biar cuma icon) */
+  header button svg + span,
+  header button .icon + span,
+  header button p {
+    display: none !important;
+  }
+}

@@ -13,15 +13,16 @@ import {
 } from "../components/ui/card";
 import { Activity, ArrowLeft, CheckCircle, User, AlertCircle } from "lucide-react";
 
+// ✅ TYPE: Allow null untuk field yang boleh kosong
 export interface DiabetesParameters {
-  age: number;
-  glucose: number;
-  bloodPressure: number;
-  bmi: number;
-  insulin: number;
-  pregnancies: number;
-  skinThickness: number;
-  diabetesPedigreeFunction: number;
+  age: number | null;
+  glucose: number | null;
+  bloodPressure: number | null;
+  bmi: number | null;
+  insulin: number | null;
+  pregnancies: number | null;
+  skinThickness: number | null;
+  diabetesPedigreeFunction: number | null;
 }
 
 export function ParametersPage() {
@@ -37,16 +38,18 @@ export function ParametersPage() {
   
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   
+  // ✅ INITIAL STATE: Semua null (belum diisi)
   const [parameters, setParameters] = useState<DiabetesParameters>({
-    age: 0,
-    glucose: 0,
-    bloodPressure: 0,
-    bmi: 0,
-    insulin: 0,
-    pregnancies: 0,
-    skinThickness: 0,
-    diabetesPedigreeFunction: 0,
+    age: null,
+    glucose: null,
+    bloodPressure: null,
+    bmi: null,
+    insulin: null,
+    pregnancies: null,
+    skinThickness: null,
+    diabetesPedigreeFunction: null,
   });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -65,31 +68,40 @@ export function ParametersPage() {
     console.log('✅ ParametersPage loaded:', { name: savedName, gender: savedGender });
     setPatientName(savedName);
     
-    
     if (savedGender) {
-      // Pastikan format konsisten (lowercase)
       const normalizedGender = savedGender.toLowerCase();
       setPatientGender(normalizedGender);
     }
     
+    // ✅ Clear predictionId lama agar tidak bentrok
+    sessionStorage.removeItem('predictionId');
+    
     setIsLoaded(true);
   }, [navigate]);
 
+  // ✅ HANDLE CHANGE: Set null jika kosong, number jika ada nilai
   const handleChange = (field: keyof DiabetesParameters, value: string) => {
-    const numValue = value === "" || value === "-" ? 0 : parseFloat(value) || 0;
-    setParameters((prev) => ({ ...prev, [field]: numValue }));
+    setErrorMessage(''); // Clear error saat user mulai mengetik
+    
+    if (value === "" || value === "-") {
+      setParameters((prev) => ({ ...prev, [field]: null }));
+    } else {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        setParameters((prev) => ({ ...prev, [field]: numValue }));
+      }
+    }
   };
 
-  // Fungsi simpan data ke MongoDB (Backend Database_3)
- const saveToMongoDB = async (params: DiabetesParameters, transactionId: string) => {
-  if (isSaving) return false;
-  
-  try {
+  // Fungsi simpan data ke MongoDB
+  const saveToMongoDB = async (params: DiabetesParameters, transactionId: string) => {
+    if (isSaving) return false;
+    
+    try {
       setIsSaving(true);
       
-      // Payload SESUAI dengan backend server.js
+      // ✅ PAYLOAD: Kirim SEMUA field (null juga dikirim)
       const payload = {
-        // Parameter medis (huruf kapital - match schema MongoDB)
         Pregnancies: params.pregnancies,
         Glucose: params.glucose,
         BloodPressure: params.bloodPressure,
@@ -98,12 +110,8 @@ export function ParametersPage() {
         BMI: params.bmi,
         DiabetesPedigreeFunction: params.diabetesPedigreeFunction,
         Age: params.age,
-        
-        // Data pasien 
         patientName: patientName,
-        patientGender: patientGender.toLowerCase(), // "laki-laki" atau "perempuan"
-        
-        // Metadata
+        patientGender: patientGender.toLowerCase(),
         source: 'web_app',
         transactionId: transactionId
       };
@@ -115,13 +123,14 @@ export function ParametersPage() {
       if (response.data.success) {
         console.log('✅ Saved to MongoDB:', response.data.savedId);
         setSaveStatus('success');
-        return true;
+        return response.data.savedId;
       } else {
         throw new Error(response.data.error || 'Unknown error');
       }
     } catch (error: any) {
       console.error('❌ Gagal simpan ke MongoDB:', error);
       setSaveStatus('error');
+      setErrorMessage(error.response?.data?.error || 'Gagal menyimpan data');
       return false;
     } finally {
       isProcessingRef.current = false;
@@ -129,8 +138,10 @@ export function ParametersPage() {
     }
   };
 
+  // ✅ SUBMIT: TANPA VALIDASI - Boleh kosong semua!
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
     
     // Cek sudah submit (prevent double call di Strict Mode)
     if (hasSubmittedRef.current) {
@@ -138,24 +149,38 @@ export function ParametersPage() {
       return;
     }
     
-    console.log('📦 Submitting parameters:', parameters);
+    // ✅ TIDAK ADA VALIDASI - Langsung submit walaupun semua null!
+    const filledFields = Object.values(parameters).filter(v => v !== null && v !== undefined).length;
+    const totalFields = Object.keys(parameters).length;
     
-    // Simpan parameters ke sessionStorage (untuk ResultsPage)
+    console.log(`📦 Submitting: ${filledFields}/${totalFields} fields filled`);
+    console.log('Parameters:', parameters);
+    
+    // Generate transaction ID
+    const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // ✅ Simpan parameters ke sessionStorage (dengan nilai null)
     sessionStorage.setItem('parameters', JSON.stringify(parameters));
     
     // Set flag sudah submit
     hasSubmittedRef.current = true;
     
+    // Simpan ke MongoDB (null akan diproses oleh Rough Set model)
+    const savedId = await saveToMongoDB(parameters, transactionId);
     
-    
-    // Navigate ke results page
-    console.log('🚀 Navigating to /results');
-    navigate('/results');
+    if (savedId) {
+      // ✅ Simpan predictionId ke sessionStorage untuk ResultsPage
+      sessionStorage.setItem('predictionId', savedId);
+      
+      // Navigate ke results page
+      console.log('🚀 Navigating to /results');
+      navigate('/results');
+    }
   };
 
   if (!isLoaded) {
     return (
-     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-8">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-8">
         <div className="text-red-600 text-xl animate-pulse">Memuat data...</div>
       </div>
     );
@@ -205,22 +230,26 @@ export function ParametersPage() {
                     min="0"
                     step="1"
                     placeholder="0"
-                    value={parameters.pregnancies === 0 ? "" : parameters.pregnancies}
+                    // ✅ NO REQUIRED - Boleh kosong
+                    value={parameters.pregnancies ?? ""}
                     onChange={(e) => handleChange("pregnancies", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
                   />
                 </div>
 
-                {/* Glucose */}
+                {/* Glucose - NO LONGER REQUIRED */}
                 <div className="space-y-2">
-                  <Label htmlFor="glucose" className="text-base font-semibold">Kadar Glukosa (mg/dL)</Label>
+                  <Label htmlFor="glucose" className="text-base font-semibold">
+                    Kadar Glukosa (mg/dL)
+                  </Label>
                   <Input
                     id="glucose"
                     type="number"
                     min="0"
                     step="0.1"
                     placeholder="Contoh: 120"
-                    value={parameters.glucose === 0 ? "" : parameters.glucose}
+                    // ✅ HAPUS required - Boleh kosong
+                    value={parameters.glucose ?? ""}
                     onChange={(e) => handleChange("glucose", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
                   />
@@ -235,7 +264,7 @@ export function ParametersPage() {
                     min="0"
                     step="0.1"
                     placeholder="Contoh: 80"
-                    value={parameters.bloodPressure === 0 ? "" : parameters.bloodPressure}
+                    value={parameters.bloodPressure ?? ""}
                     onChange={(e) => handleChange("bloodPressure", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
                   />
@@ -250,7 +279,7 @@ export function ParametersPage() {
                     min="0"
                     step="0.1"
                     placeholder="0"
-                    value={parameters.skinThickness === 0 ? "" : parameters.skinThickness}
+                    value={parameters.skinThickness ?? ""}
                     onChange={(e) => handleChange("skinThickness", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
                   />
@@ -265,7 +294,7 @@ export function ParametersPage() {
                     min="0"
                     step="0.1"
                     placeholder="0"
-                    value={parameters.insulin === 0 ? "" : parameters.insulin}
+                    value={parameters.insulin ?? ""}
                     onChange={(e) => handleChange("insulin", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
                   />
@@ -280,7 +309,7 @@ export function ParametersPage() {
                     min="0"
                     step="0.1"
                     placeholder="Contoh: 23.5"
-                    value={parameters.bmi === 0 ? "" : parameters.bmi}
+                    value={parameters.bmi ?? ""}
                     onChange={(e) => handleChange("bmi", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
                   />
@@ -294,42 +323,47 @@ export function ParametersPage() {
                     type="number"
                     min="0"
                     step="0.001"
-                    max="2"
-                    placeholder="0.0 - 2.0"
-                    value={parameters.diabetesPedigreeFunction === 0 ? "" : parameters.diabetesPedigreeFunction}
+                    placeholder="0.5"
+                    value={parameters.diabetesPedigreeFunction ?? ""}
                     onChange={(e) => handleChange("diabetesPedigreeFunction", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
                   />
-                  
                 </div>
 
-                {/* Age */}
+                {/* Age - NO LONGER REQUIRED */}
                 <div className="space-y-2">
-                  <Label htmlFor="age" className="text-base font-semibold">Usia (tahun)</Label>
+                  <Label htmlFor="age" className="text-base font-semibold">
+                    Usia (tahun)
+                  </Label>
                   <Input
                     id="age"
                     type="number"
                     min="0"
                     step="1"
                     placeholder="Contoh: 35"
-                    value={parameters.age === 0 ? "" : parameters.age}
+                    // ✅ HAPUS required - Boleh kosong
+                    value={parameters.age ?? ""}
                     onChange={(e) => handleChange("age", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
                   />
                 </div>
               </div>
 
+             
+
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg border-2 border-red-200">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
               {/* Save Status Message */}
               {saveStatus === 'success' && (
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
                   <CheckCircle className="w-4 h-4" />
                   Data tersimpan ke database
-                </div>
-              )}
-              {saveStatus === 'error' && (
-                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                  <AlertCircle className="w-4 h-4" />
-                  Gagal menyimpan ke database
                 </div>
               )}
 
