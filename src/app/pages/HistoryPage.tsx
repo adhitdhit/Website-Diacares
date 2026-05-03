@@ -67,22 +67,21 @@ export function HistoryPage() {
     fetchHistory();
   }, []);
 
- // Format Date - Auto detect user timezone
-const formatDate = (dateString: string) => {
+ const formatDate = (dateString: string) => {
   if (!dateString) return '-';
   
   try {
     const date = new Date(dateString);
     
-    // ✅ Otomatis detect timezone user (bisa WIB/WITA/WIT/JST/EST/dll)
+    // ✅ FIX: Explicitly convert to user's local timezone
     return date.toLocaleString('id-ID', {
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, // ← INI KUNCINYA!
       day: 'numeric',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
-      // Gak perlu specify timeZone → otomatis pakai timezone browser
     });
   } catch (error) {
     console.error('Format date error:', error);
