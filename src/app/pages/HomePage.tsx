@@ -55,35 +55,27 @@ export function HomePage() {
   }, []);
 
   // Format tanggal
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
+  // Format tanggal - Simple & Clean
+const formatDate = (dateString: string) => {
+  if (!dateString) return '-';
+  
+  try {
+    const date = new Date(dateString); // ✅ Langsung parse, gak perlu manipulasi string
     
-    try {
-      const date = new Date(dateString);
-      let cleanDate = dateString.replace(' ', 'T');
-      if (cleanDate.includes('+00:00')) {
-        cleanDate = cleanDate.replace('+00:00', 'Z');
-      }
-      const utcDate = new Date(cleanDate);
-      
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
-      const formatted = utcDate.toLocaleString('id-ID', {
-        timeZone: userTimezone,
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
-      
-      return formatted;
-    } catch (error) {
-      console.error('Format date error:', error);
-      return '-';
-    }
-  };
+    return date.toLocaleString('id-ID', {
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, // ✅ Auto detect timezone user
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  } catch (error) {
+    console.error('Format date error:', error);
+    return '-';
+  }
+};
 
   // Fungsi scroll
   const scrollToDiabetesInfo = () => {
