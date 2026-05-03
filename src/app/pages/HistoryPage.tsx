@@ -68,34 +68,31 @@ export function HistoryPage() {
   }, []);
 
   // Format Date
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
+ // Format Date - FIX WIB (UTC+7)
+const formatDate = (dateString: string) => {
+  if (!dateString) return '-';
+  
+  try {
+    // Parse date string
+    const date = new Date(dateString);
     
-    try {
-      const date = new Date(dateString);
-      let cleanDate = dateString.replace(' ', 'T');
-      if (cleanDate.includes('+00:00')) {
-        cleanDate = cleanDate.replace('+00:00', 'Z');
-      }
-      const utcDate = new Date(cleanDate);
-      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
-      const formatted = utcDate.toLocaleString('id-ID', {
-        timeZone: userTimezone,
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
-      
-      return formatted;
-    } catch (error) {
-      console.error('Format date error:', error);
-      return '-';
-    }
-  };
+    // ✅ FIX: Tambah 7 jam manual untuk convert UTC → WIB
+    const wibTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+    
+    // Format ke Indonesian locale
+    return wibTime.toLocaleString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  } catch (error) {
+    console.error('Format date error:', error);
+    return '-';
+  }
+};
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
