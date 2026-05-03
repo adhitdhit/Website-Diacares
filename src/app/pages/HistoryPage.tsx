@@ -67,15 +67,17 @@ export function HistoryPage() {
     fetchHistory();
   }, []);
 
+
+  // DATETIME
  const formatDate = (dateString: string) => {
   if (!dateString) return '-';
   
   try {
     const date = new Date(dateString);
     
-    // ✅ FIX: Explicitly convert to user's local timezone
+    // ✅ Explicit WIB timezone (lebih aman daripada manual +7 jam)
     return date.toLocaleString('id-ID', {
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, // ← INI KUNCINYA!
+      timeZone: 'Asia/Jakarta',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
