@@ -67,26 +67,22 @@ export function HistoryPage() {
     fetchHistory();
   }, []);
 
-  // Format Date
- // Format Date - FIX WIB (UTC+7)
+ // Format Date - Auto detect user timezone
 const formatDate = (dateString: string) => {
   if (!dateString) return '-';
   
   try {
-    // Parse date string
     const date = new Date(dateString);
     
-    // ✅ FIX: Tambah 7 jam manual untuk convert UTC → WIB
-    const wibTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
-    
-    // Format ke Indonesian locale
-    return wibTime.toLocaleString('id-ID', {
+    // ✅ Otomatis detect timezone user (bisa WIB/WITA/WIT/JST/EST/dll)
+    return date.toLocaleString('id-ID', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
+      // Gak perlu specify timeZone → otomatis pakai timezone browser
     });
   } catch (error) {
     console.error('Format date error:', error);
