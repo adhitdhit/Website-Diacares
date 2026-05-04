@@ -490,42 +490,45 @@ export function ResultsPage() {
 
         <Card className="border-2 border-red-200 shadow-2xl">
           <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4 flex-1">
-                {/* Gender Icon */}
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
-                  patientGender.toLowerCase() === 'laki-laki' 
-                    ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
-                    : 'bg-gradient-to-br from-pink-500 to-rose-500'
-                }`}>
-                  <span className="text-xl text-white font-bold">
-                    {patientGender.toLowerCase() === 'laki-laki' ? 'L' : patientGender.toLowerCase() === 'perempuan' ? 'P' : '?'}
-                  </span>
-                </div>
-                <div>
-                  <CardTitle className="text-2xl text-white flex items-center gap-2">
-                    <CheckCircle className="w-6 h-6" />
-                    Hasil Prediksi
-                  </CardTitle>
-                  <CardDescription className="text-white/90 text-base">
-                    Pasien: {patientName} • {patientGender}
-                  </CardDescription>
-                  {prediction._id && (
-                    <p className="text-xs text-white/70 mt-1">
-                      ID: <code className="bg-white/20 px-1 rounded">{prediction._id.slice(-8)}</code>
-                    </p>
-                  )}
-                </div>
-              </div>
-              {isCompleted && prediction.Prediction_Result === 1 ? (
-                <AlertCircle className="w-12 h-12 text-white/90 animate-pulse" />
-              ) : isCompleted ? (
-                <CheckCircle className="w-12 h-12 text-white/90" />
-              ) : (
-                <Loader2 className="w-12 h-12 text-white/90 animate-spin" />
-              )}
-            </div>
-          </CardHeader>
+  <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
+    <div className="flex items-start gap-3 sm:gap-4 w-full">
+      {/* Gender Icon - Responsive size */}
+      <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
+        patientGender.toLowerCase() === 'laki-laki' 
+          ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
+          : 'bg-gradient-to-br from-pink-500 to-rose-500'
+      }`}>
+        <span className="text-lg sm:text-xl text-white font-bold">
+          {patientGender.toLowerCase() === 'laki-laki' ? 'L' : patientGender.toLowerCase() === 'perempuan' ? 'P' : '?'}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <CardTitle className="text-xl sm:text-2xl text-white flex items-center gap-2 flex-wrap">
+          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+          <span className="break-words">Hasil Prediksi</span>
+        </CardTitle>
+        <CardDescription className="text-white/90 text-sm sm:text-base break-words">
+          Pasien: {patientName} • {patientGender}
+        </CardDescription>
+        {prediction._id && (
+          <p className="text-xs text-white/70 mt-1 break-all">
+            ID: <code className="bg-white/20 px-1 rounded">{prediction._id.slice(-8)}</code>
+          </p>
+        )}
+      </div>
+    </div>
+    {/* Icon status - Responsive size */}
+    <div className="flex-shrink-0">
+      {isCompleted && prediction.Prediction_Result === 1 ? (
+        <AlertCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white/90 animate-pulse" />
+      ) : isCompleted ? (
+        <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white/90" />
+      ) : (
+        <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-white/90 animate-spin" />
+      )}
+    </div>
+  </div>
+</CardHeader>
           
           <CardContent className="space-y-6 pt-6">
             
