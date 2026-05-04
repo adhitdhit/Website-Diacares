@@ -489,55 +489,43 @@ export function ResultsPage() {
         </div>
 
         <Card className="border-2 border-red-200 shadow-2xl">
-
-
-<CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300 py-8 sm:py-12">
-  {/* Container Utama: Mobile (Kolom/Tengah) | Desktop (Baris/Tengah) */}
-  <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-    
-    {/* BAGIAN KIRI: Icon P + Teks Info */}
-    <div className="flex items-center gap-5">
-      {/* Icon Gender */}
-      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
-        patientGender.toLowerCase() === 'laki-laki' 
-          ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
-          : 'bg-gradient-to-br from-pink-500 to-rose-500'
-      }`}>
-        <span className="text-2xl sm:text-3xl text-white font-bold">
-          {patientGender.toLowerCase() === 'laki-laki' ? 'L' : patientGender.toLowerCase() === 'perempuan' ? 'P' : '?'}
-        </span>
-      </div>
-      
-      {/* Teks Info */}
-      <div className="text-center sm:text-left">
-        <CardTitle className="text-xl sm:text-3xl text-white flex items-center sm:items-center gap-2 justify-center sm:justify-start">
-          <CheckCircle className="w-5 h-5 sm:w-7 sm:h-7" />
-          Hasil Prediksi
-        </CardTitle>
-        <CardDescription className="text-white/90 text-sm sm:text-lg mt-1">
-          Pasien: {patientName} • {patientGender}
-        </CardDescription>
-        {prediction._id && (
-          <p className="text-xs text-white/70 mt-1">
-            ID: <code className="bg-white/20 px-2 py-0.5 rounded">{prediction._id.slice(-8)}</code>
-          </p>
-        )}
-      </div>
-    </div>
-
-    {/* BAGIAN KANAN: Icon Alert */}
-    <div className="flex-shrink-0 mt-2 sm:mt-0">
-      {isCompleted && prediction.Prediction_Result === 1 ? (
-        <AlertCircle className="w-12 h-12 sm:w-14 sm:h-14 text-white/90 animate-pulse" />
-      ) : isCompleted ? (
-        <CheckCircle className="w-12 h-12 sm:w-14 sm:h-14 text-white/90" />
-      ) : (
-        <Loader2 className="w-12 h-12 sm:w-14 sm:h-14 text-white/90 animate-spin" />
-      )}
-    </div>
-
-  </div>
-</CardHeader>
+          <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4 flex-1">
+                {/* Gender Icon */}
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
+                  patientGender.toLowerCase() === 'laki-laki' 
+                    ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
+                    : 'bg-gradient-to-br from-pink-500 to-rose-500'
+                }`}>
+                  <span className="text-xl text-white font-bold">
+                    {patientGender.toLowerCase() === 'laki-laki' ? 'L' : patientGender.toLowerCase() === 'perempuan' ? 'P' : '?'}
+                  </span>
+                </div>
+                <div>
+                  <CardTitle className="text-2xl text-white flex items-center gap-2">
+                    <CheckCircle className="w-6 h-6" />
+                    Hasil Prediksi
+                  </CardTitle>
+                  <CardDescription className="text-white/90 text-base">
+                    Pasien: {patientName} • {patientGender}
+                  </CardDescription>
+                  {prediction._id && (
+                    <p className="text-xs text-white/70 mt-1">
+                      ID: <code className="bg-white/20 px-1 rounded">{prediction._id.slice(-8)}</code>
+                    </p>
+                  )}
+                </div>
+              </div>
+              {isCompleted && prediction.Prediction_Result === 1 ? (
+                <AlertCircle className="w-12 h-12 text-white/90 animate-pulse" />
+              ) : isCompleted ? (
+                <CheckCircle className="w-12 h-12 text-white/90" />
+              ) : (
+                <Loader2 className="w-12 h-12 text-white/90 animate-spin" />
+              )}
+            </div>
+          </CardHeader>
           
           <CardContent className="space-y-6 pt-6">
             
