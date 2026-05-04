@@ -463,7 +463,7 @@ export function ResultsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-4 py-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Status Banner */}
         <div className={`flex items-center gap-3 p-4 rounded-xl border-2 ${
@@ -489,54 +489,48 @@ export function ResultsPage() {
         </div>
 
         <Card className="border-2 border-red-200 shadow-2xl">
-          <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300 p-4 sm:p-6">
-  {/* Mobile: Stack Vertikal | Desktop: Horizontal */}
-  <div className="flex flex-col items-center text-center sm:items-start sm:text-left sm:flex-row sm:justify-between gap-4">
+          <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300 p-6 sm:p-8">
+  {/* Desktop: Center & Balance | Mobile: Stack */}
+  <div className="flex flex-col sm:flex-row items-center sm:items-center justify-center gap-4 sm:gap-6">
     
-    {/* Left Section: Icon + Info */}
-    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4 w-full">
+    {/* Left: Icon + Info */}
+    <div className="flex items-center gap-4 sm:gap-5">
       {/* Gender Icon */}
-      <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
+      <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
         patientGender.toLowerCase() === 'laki-laki' 
           ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
           : 'bg-gradient-to-br from-pink-500 to-rose-500'
       }`}>
-        <span className="text-xl sm:text-2xl text-white font-bold">
+        <span className="text-2xl sm:text-3xl text-white font-bold">
           {patientGender.toLowerCase() === 'laki-laki' ? 'L' : patientGender.toLowerCase() === 'perempuan' ? 'P' : '?'}
         </span>
       </div>
       
       {/* Patient Info */}
-      <div className="flex-1 space-y-1">
-        <CardTitle className="text-xl sm:text-2xl text-white flex items-center justify-center sm:justify-start gap-2">
-          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+      <div className="text-left">
+        <CardTitle className="text-2xl sm:text-3xl text-white flex items-center gap-2">
+          <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7" />
           Hasil Prediksi
         </CardTitle>
-        
-        <CardDescription className="text-white/90 text-sm sm:text-base">
-          Pasien: {patientName}
+        <CardDescription className="text-white/90 text-base sm:text-lg mt-1">
+          Pasien: {patientName} • {patientGender}
         </CardDescription>
-        
-        <CardDescription className="text-white/90 text-sm sm:text-base">
-          {patientGender}
-        </CardDescription>
-        
         {prediction._id && (
-          <p className="text-xs text-white/70 mt-2">
+          <p className="text-xs text-white/70 mt-1">
             ID: <code className="bg-white/20 px-2 py-0.5 rounded">{prediction._id.slice(-8)}</code>
           </p>
         )}
       </div>
     </div>
 
-    {/* Right Section: Status Icon */}
-    <div className="flex-shrink-0">
+    {/* Right: Status Icon */}
+    <div className="flex-shrink-0 mt-2 sm:mt-0">
       {isCompleted && prediction.Prediction_Result === 1 ? (
-        <AlertCircle className="w-12 h-12 sm:w-14 sm:h-14 text-white/90 animate-pulse mx-auto sm:mx-0" />
+        <AlertCircle className="w-14 h-14 sm:w-16 sm:h-16 text-white/90 animate-pulse" />
       ) : isCompleted ? (
-        <CheckCircle className="w-12 h-12 sm:w-14 sm:h-14 text-white/90 mx-auto sm:mx-0" />
+        <CheckCircle className="w-14 h-14 sm:w-16 sm:h-16 text-white/90" />
       ) : (
-        <Loader2 className="w-12 h-12 sm:w-14 sm:h-14 text-white/90 animate-spin mx-auto sm:mx-0" />
+        <Loader2 className="w-14 h-14 sm:w-16 sm:h-16 text-white/90 animate-spin" />
       )}
     </div>
   </div>
