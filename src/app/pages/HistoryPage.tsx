@@ -350,20 +350,20 @@ export function HistoryPage() {
                         </div>
                       </div>
 
-                      {/* Right: Status Badge Only */}
-                      <div className="ml-4">
-                        <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                          item.status === 'completed'
-                            ? 'bg-green-100 text-green-700 border-2 border-green-300'
-                            : item.status === 'processing'
-                            ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300'
-                            : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
-                        }`}>
-                          {item.status === 'completed' ? '✅ Selesai' : 
-                           item.status === 'processing' ? '⏳ Diproses' : 
-                           '⏳ Pending'}
-                        </div>
-                      </div>
+                      {/* Right: Status Badge - ✅ FIX MOBILE ONLY */}
+                       <div className="flex-shrink-0 w-full sm:w-auto sm:ml-4">
+                          <div className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-center sm:text-left ${
+                            item.status === 'completed'
+                              ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                              : item.status === 'processing'
+                              ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300'
+                              : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
+                           }`}>
+                              {item.status === 'completed' ? '✅ Selesai' : 
+                               item.status === 'processing' ? '⏳ Diproses' : 
+                               '⏳ Pending'}
+                             </div>
+                          </div>
                     </div>
                   </CardContent>
                 </Card>
