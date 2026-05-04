@@ -354,25 +354,25 @@ const formatDate = (dateString: string) => {
 
           {/* RIWAYAT PEMERIKSAAN */}
           <Card className="border-red-200 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border-b border-red-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Clock className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-3xl">Riwayat Pemeriksaan</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">Asesmen yang telah dilakukan</p>
-                  </div>
-                </div>
-                <Link to="/history">
-                  <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
-                    Lihat Semua
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
+           <CardHeader className="bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border-b border-red-100">
+  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-red-600 to-orange-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+        <Clock className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+      </div>
+      <div>
+        <CardTitle className="text-2xl sm:text-3xl">Riwayat Pemeriksaan</CardTitle>
+        <p className="text-sm text-gray-600 mt-1">Asesmen yang telah dilakukan</p>
+      </div>
+    </div>
+    <Link to="/history" className="w-full sm:w-auto">
+      <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto whitespace-nowrap">
+        Lihat Semua
+        <ArrowRight className="w-4 h-4 ml-2" />
+      </Button>
+    </Link>
+  </div>
+</CardHeader>
             
             <CardContent className="pt-6">
               {/* Loading State */}
@@ -441,27 +441,25 @@ const formatDate = (dateString: string) => {
           {/* About Diabetes Section */}
           <Card id="diabetes-info" className="border-red-200 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden scroll-mt-20">
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-red-100 to-transparent rounded-full blur-3xl opacity-50"></div>
-            <CardHeader className="bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border-b border-red-100 relative">
-              <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <Heart className="w-7 h-7 text-white" />
-              </div>
-              <div>
-            <h1 className="text-3xl font-bold text-gray-900">Apa itu Diabetes Mellitus?</h1>
-            <p className="text-gray-600">Pelajari lebih lanjut tentang penyakit ini</p>
-            </div>
-            </div>
-  
-         {/* Tombol */}
-        <Link to="/education">
-        <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50">
+          <CardHeader className="bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border-b border-red-100 relative">
+  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-red-600 to-orange-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+        <Heart className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+      </div>
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Apa itu Diabetes Mellitus?</h1>
+        <p className="text-gray-600">Pelajari lebih lanjut tentang penyakit ini</p>
+      </div>
+    </div>
+    <Link to="/education" className="w-full sm:w-auto">
+      <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50 w-full sm:w-auto whitespace-nowrap">
         Selengkapnya
         <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Link>
-        </div>
-            </CardHeader>
+      </Button>
+    </Link>
+  </div>
+</CardHeader>
             
             <CardContent className="pt-8 relative">
               <div className="grid lg:grid-cols-2 gap-8 items-center">
@@ -547,23 +545,24 @@ const formatDate = (dateString: string) => {
           {/* About DiaCares App Section - DENGAN TOMBOL KE HALAMAN ABOUT */}
           <Card className="border-orange-200 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden">
             <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-orange-100 to-transparent rounded-full blur-3xl opacity-40"></div>
-            <CardHeader className="bg-gradient-to-r from-orange-50 via-red-50 to-orange-50 border-b border-orange-100 relative">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 bg-gradient-to-br from-orange-600 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-7 h-7 text-white" />
-                  </div>
-                  <CardTitle className="text-3xl">Tentang Aplikasi DiaCARES</CardTitle>
-                </div>
-                {/* TOMBOL LIHAT SELENGKAPNYA */}
-                <Link to="/about">
-                  <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50">
-                    Selengkapnya
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
+           <CardHeader className="bg-gradient-to-r from-orange-50 via-red-50 to-orange-50 border-b border-orange-100 relative">
+  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+        <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+      </div>
+      <CardTitle className="text-2xl sm:text-3xl">Tentang Aplikasi DiaCARES</CardTitle>
+    </div>
+    <Link to="/about" className="w-full sm:w-auto">
+      <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50 w-full sm:w-auto whitespace-nowrap">
+        Selengkapnya
+        <ArrowRight className="w-4 h-4 ml-2" />
+      </Button>
+    </Link>
+  </div>
+</CardHeader>
+
+
             <CardContent className="pt-8 relative">
               <div className="grid lg:grid-cols-2 gap-8 items-center">
                 {/* Gambar Aplikasi */}
@@ -664,26 +663,25 @@ const formatDate = (dateString: string) => {
           <Card 
           id="hospitals-section" 
           className="border-red-200 shadow-xl hover:shadow-2xl transition-all duration-300 scroll-mt-20">
-            <CardHeader className="bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border-b border-red-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Hospital className="w-7 h-7 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-3xl">Rumah Sakit Terdekat</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">Layanan diabetes dan endokrinologi</p>
-                  </div>
-                </div>
-                {/*  TOMBOL LIHAT SELENGKAPNYA */}
-                <Link to="/hospitals">
-                  <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
-                    Selengkapnya
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
+           <CardHeader className="bg-gradient-to-r from-red-50 via-orange-50 to-red-50 border-b border-red-100">
+  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-red-600 to-orange-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+        <Hospital className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+      </div>
+      <div>
+        <CardTitle className="text-2xl sm:text-3xl">Rumah Sakit Terdekat</CardTitle>
+        <p className="text-sm text-gray-600 mt-1">Layanan diabetes dan endokrinologi</p>
+      </div>
+    </div>
+    <Link to="/hospitals" className="w-full sm:w-auto">
+      <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto whitespace-nowrap">
+        Selengkapnya
+        <ArrowRight className="w-4 h-4 ml-2" />
+      </Button>
+    </Link>
+  </div>
+</CardHeader>
             <CardContent className="pt-6">
               <div className="grid md:grid-cols-2 gap-4">
                 {hospitals.map((hospital, index) => (
