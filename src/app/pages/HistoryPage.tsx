@@ -316,54 +316,54 @@ export function HistoryPage() {
                   key={item._id} 
                   className="border-2 border-gray-200 hover:border-red-300 transition-all shadow-sm hover:shadow-md"
                 >
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       
-                      {/* Left: Patient Info */}
-                      <div className="flex items-center gap-4 flex-1">
-                        {/* Icon Gender */}
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          item.patientGender === 'perempuan' 
-                            ? 'bg-pink-100' 
-                            : 'bg-blue-100'
-                        }`}>
-                          <User className={`w-6 h-6 ${
-                            item.patientGender === 'perempuan' 
-                              ? 'text-pink-600' 
-                              : 'text-blue-600'
-                          }`} />
-                        </div>
+                       {/* Left: Patient Info */}
+    <div className="flex items-center gap-3 flex-1 min-w-0">
+      {/* Icon Gender - Ukuran tetap */}
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+        item.patientGender === 'perempuan' 
+          ? 'bg-pink-100' 
+          : 'bg-blue-100'
+      }`}>
+        <User className={`w-6 h-6 ${
+          item.patientGender === 'perempuan' 
+            ? 'text-pink-600' 
+            : 'text-blue-600'
+        }`} />
+      </div>
 
                         {/* Patient Name & Date */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-gray-900 text-lg truncate">
-                            {item.patientName}
-                          </h3>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              <span>{formatDate(item.createdAt)}</span>
-                            </div>
-                            <span>•</span>
-                            <span>{item.patientGender}</span>
-                          </div>
-                        </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-gray-900 text-lg truncate">
+          {item.patientName}
+        </h3>
+        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mt-1">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4" />
+            <span>{formatDate(item.createdAt)}</span>
+          </div>
+          <span>•</span>
+          <span>{item.patientGender}</span>
+        </div>
+      </div>
                       </div>
 
-                      {/* Right: Status Badge - ✅ FIX MOBILE ONLY */}
-                       <div className="flex-shrink-0 w-full sm:w-auto sm:ml-4">
-                          <div className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-center sm:text-left ${
-                            item.status === 'completed'
-                              ? 'bg-green-100 text-green-700 border-2 border-green-300'
-                              : item.status === 'processing'
-                              ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300'
-                              : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
-                           }`}>
-                              {item.status === 'completed' ? '✅ Selesai' : 
-                               item.status === 'processing' ? '⏳ Diproses' : 
-                               '⏳ Pending'}
-                             </div>
-                          </div>
+                       {/* Right: Status Badge - FIX MOBILE */}
+    <div className="flex-shrink-0">
+      <div className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+        item.status === 'completed'
+          ? 'bg-green-100 text-green-700 border-2 border-green-300'
+          : item.status === 'processing'
+          ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300'
+          : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
+      }`}>
+        {item.status === 'completed' ? '✅ Selesai' : 
+         item.status === 'processing' ? '⏳ Diproses' : 
+         '⏳ Pending'}
+      </div>
+    </div>
                     </div>
                   </CardContent>
                 </Card>
