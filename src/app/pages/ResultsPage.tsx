@@ -489,42 +489,54 @@ export function ResultsPage() {
         </div>
 
         <Card className="border-2 border-red-200 shadow-2xl">
-          <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300">
-  <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
-    <div className="flex items-start gap-3 sm:gap-4 w-full">
-      {/* Gender Icon - Responsive size */}
-      <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
+          <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300 p-4 sm:p-6">
+  {/* Mobile: Stack Vertikal | Desktop: Horizontal */}
+  <div className="flex flex-col items-center text-center sm:items-start sm:text-left sm:flex-row sm:justify-between gap-4">
+    
+    {/* Left Section: Icon + Info */}
+    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4 w-full">
+      {/* Gender Icon */}
+      <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
         patientGender.toLowerCase() === 'laki-laki' 
           ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
           : 'bg-gradient-to-br from-pink-500 to-rose-500'
       }`}>
-        <span className="text-lg sm:text-xl text-white font-bold">
+        <span className="text-xl sm:text-2xl text-white font-bold">
           {patientGender.toLowerCase() === 'laki-laki' ? 'L' : patientGender.toLowerCase() === 'perempuan' ? 'P' : '?'}
         </span>
       </div>
-      <div className="flex-1 min-w-0">
-        <CardTitle className="text-xl sm:text-2xl text-white flex items-center gap-2 flex-wrap">
-          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-          <span className="break-words">Hasil Prediksi</span>
+      
+      {/* Patient Info */}
+      <div className="flex-1 space-y-1">
+        <CardTitle className="text-xl sm:text-2xl text-white flex items-center justify-center sm:justify-start gap-2">
+          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
+          Hasil Prediksi
         </CardTitle>
-        <CardDescription className="text-white/90 text-sm sm:text-base break-words">
-          Pasien: {patientName} • {patientGender}
+        
+        <CardDescription className="text-white/90 text-sm sm:text-base">
+          Pasien: {patientName}
         </CardDescription>
+        
+        <CardDescription className="text-white/90 text-sm sm:text-base">
+          {patientGender}
+        </CardDescription>
+        
         {prediction._id && (
-          <p className="text-xs text-white/70 mt-1 break-all">
-            ID: <code className="bg-white/20 px-1 rounded">{prediction._id.slice(-8)}</code>
+          <p className="text-xs text-white/70 mt-2">
+            ID: <code className="bg-white/20 px-2 py-0.5 rounded">{prediction._id.slice(-8)}</code>
           </p>
         )}
       </div>
     </div>
-    {/* Icon status - Responsive size */}
+
+    {/* Right Section: Status Icon */}
     <div className="flex-shrink-0">
       {isCompleted && prediction.Prediction_Result === 1 ? (
-        <AlertCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white/90 animate-pulse" />
+        <AlertCircle className="w-12 h-12 sm:w-14 sm:h-14 text-white/90 animate-pulse mx-auto sm:mx-0" />
       ) : isCompleted ? (
-        <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white/90" />
+        <CheckCircle className="w-12 h-12 sm:w-14 sm:h-14 text-white/90 mx-auto sm:mx-0" />
       ) : (
-        <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 text-white/90 animate-spin" />
+        <Loader2 className="w-12 h-12 sm:w-14 sm:h-14 text-white/90 animate-spin mx-auto sm:mx-0" />
       )}
     </div>
   </div>
