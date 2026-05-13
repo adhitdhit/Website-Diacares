@@ -32,7 +32,7 @@ app.get('/api/stats', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Database 2');
+    const collection = db.collection('Database 4');
     
     const total = await collection.countDocuments({});
     const diabetes = await collection.countDocuments({ Outcome_Actual: 1 });
@@ -60,7 +60,7 @@ app.get('/api/data', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Database 2');
+    const collection = db.collection('Database 4');
     const query = req.query.split ? { Split: req.query.split } : {};
     const data = await collection.find(query).toArray();
     
@@ -78,7 +78,7 @@ app.get('/api/feature-means', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Database 2');
+    const collection = db.collection('Database 4');
     
     const stats = await collection.aggregate([
       {
