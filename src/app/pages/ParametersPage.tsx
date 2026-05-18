@@ -257,7 +257,7 @@ export function ParametersPage() {
 
                 {/* Blood Pressure */}
                 <div className="space-y-2">
-                  <Label htmlFor="bloodPressure" className="text-base font-semibold">Tekanan Darah (mmHg)</Label>
+                  <Label htmlFor="bloodPressure" className="text-base font-semibold">Tekanan Darah Diastolik (Nilai Bawah/mmHg)</Label>
                   <Input
                     id="bloodPressure"
                     type="number"

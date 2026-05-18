@@ -331,15 +331,15 @@ export function ResultsPage() {
 
     // ✅ Data parameter dengan handle null
     const clinicalData = [
-      { label: 'Glukosa Darah', value: parameters.glucose, unit: 'mg/dL', range: [70, 100] as [number, number] },
-      { label: 'Tekanan Darah', value: parameters.bloodPressure, unit: 'mmHg', range: [90, 120] as [number, number] },
-      { label: 'BMI', value: parameters.bmi, unit: 'kg/m^2', range: [18.5, 24.9] as [number, number], decimals: 1 },
-      { label: 'Insulin', value: parameters.insulin, unit: 'uU/mL', range: [16, 150] as [number, number] },
-      { label: 'Usia', value: parameters.age, unit: 'tahun', range: [0, 45] as [number, number] },
-      { label: 'Jumlah Kehamilan', value: parameters.pregnancies, unit: 'kali', range: [0, 3] as [number, number] },
-      { label: 'Ketebalan Kulit', value: parameters.skinThickness, unit: 'mm', range: [10, 30] as [number, number] },
-      { label: 'Riwayat Keluarga', value: parameters.diabetesPedigreeFunction, unit: '', range: [0, 0.3] as [number, number], decimals: 3 },
-    ];
+  { label: 'Glukosa Darah (OGTT)', value: parameters.glucose, unit: 'mg/dL', range: [0, 140] as [number, number] },
+  { label: 'Tekanan Darah (Diastolik)', value: parameters.bloodPressure, unit: 'mmHg', range: [60, 80] as [number, number] },  // ✅ Update
+  { label: 'BMI', value: parameters.bmi, unit: 'kg/m^2', range: [18.5, 22.9] as [number, number], decimals: 1 },
+  { label: 'Insulin', value: parameters.insulin, unit: 'uU/mL', range: [2, 20] as [number, number] },
+  { label: 'Usia', value: parameters.age, unit: 'tahun', range: [35, 100] as [number, number] },
+  { label: 'Jumlah Kehamilan', value: parameters.pregnancies, unit: 'kali', range: [0, 3] as [number, number] },
+  { label: 'Ketebalan Kulit', value: parameters.skinThickness, unit: 'mm', range: [10, 22] as [number, number] },
+  { label: 'Riwayat Keluarga', value: parameters.diabetesPedigreeFunction, unit: '', range: [0, 0.5] as [number, number], decimals: 3 },
+];
 
     clinicalData.forEach((item, index) => {
       if (index > 0) {
@@ -561,7 +561,7 @@ export function ResultsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {parameters && Object.entries(parameters).map(([key, value]: [string, any]) => {
                   const labels: Record<string, string> = {
-                    age: 'Usia', glucose: 'Glukosa', bloodPressure: 'Tekanan Darah',
+                    age: 'Usia', glucose: 'Glukosa', bloodPressure: 'Tekanan Darah (Diastolik/Nilai Bawah)',
                     bmi: 'BMI', insulin: 'Insulin', pregnancies: 'Jumlah Kehamilan',
                     skinThickness: 'Ketebalan Kulit', diabetesPedigreeFunction: 'Riwayat Keluarga'
                   };
@@ -570,7 +570,7 @@ export function ResultsPage() {
                     age: 'tahun', pregnancies: 'kali', skinThickness: 'mm', diabetesPedigreeFunction: ''
                   };
                   const ranges: Record<string, [number, number]> = {
-                    glucose: [70, 100], bloodPressure: [90, 120], bmi: [18.5, 22.9],
+                    glucose: [0, 140], bloodPressure: [60, 80], bmi: [18.5, 22.9],
                     insulin: [2, 20], age: [21, 35], pregnancies: [0, 3],
                     skinThickness: [10, 22], diabetesPedigreeFunction: [0, 0.5]
                   };
