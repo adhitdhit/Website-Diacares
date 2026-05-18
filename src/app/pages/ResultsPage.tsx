@@ -570,9 +570,9 @@ export function ResultsPage() {
                     age: 'tahun', pregnancies: 'kali', skinThickness: 'mm', diabetesPedigreeFunction: ''
                   };
                   const ranges: Record<string, [number, number]> = {
-                    glucose: [70, 100], bloodPressure: [90, 120], bmi: [18.5, 24.9],
-                    insulin: [16, 150], age: [0, 45], pregnancies: [0, 3],
-                    skinThickness: [10, 30], diabetesPedigreeFunction: [0, 0.3]
+                    glucose: [70, 100], bloodPressure: [90, 120], bmi: [18.5, 22.9],
+                    insulin: [2, 20], age: [21, 35], pregnancies: [0, 3],
+                    skinThickness: [10, 22], diabetesPedigreeFunction: [0, 0.5]
                   };
                   const decimals: Record<string, number> = {
                     bmi: 1, diabetesPedigreeFunction: 3
