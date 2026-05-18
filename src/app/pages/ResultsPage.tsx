@@ -335,7 +335,7 @@ export function ResultsPage() {
   { label: 'Tekanan Darah (Diastolik)', value: parameters.bloodPressure, unit: 'mmHg', range: [60, 80] as [number, number] },  // ✅ Update
   { label: 'BMI', value: parameters.bmi, unit: 'kg/m^2', range: [18.5, 22.9] as [number, number], decimals: 1 },
   { label: 'Insulin', value: parameters.insulin, unit: 'uU/mL', range: [2, 20] as [number, number] },
-  { label: 'Usia', value: parameters.age, unit: 'tahun', range: [35, 100] as [number, number] },
+  { label: 'Usia', value: parameters.age, unit: 'tahun', range: [0, 35] as [number, number] },
   { label: 'Jumlah Kehamilan', value: parameters.pregnancies, unit: 'kali', range: [0, 3] as [number, number] },
   { label: 'Ketebalan Kulit', value: parameters.skinThickness, unit: 'mm', range: [10, 22] as [number, number] },
   { label: 'Riwayat Keluarga', value: parameters.diabetesPedigreeFunction, unit: '', range: [0, 0.5] as [number, number], decimals: 3 },
@@ -571,7 +571,7 @@ export function ResultsPage() {
                   };
                   const ranges: Record<string, [number, number]> = {
                     glucose: [0, 140], bloodPressure: [60, 80], bmi: [18.5, 22.9],
-                    insulin: [2, 20], age: [21, 35], pregnancies: [0, 3],
+                    insulin: [2, 20], age: [0, 35], pregnancies: [0, 3],
                     skinThickness: [10, 22], diabetesPedigreeFunction: [0, 0.5]
                   };
                   const decimals: Record<string, number> = {
