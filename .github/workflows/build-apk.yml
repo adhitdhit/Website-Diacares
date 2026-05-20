@@ -19,9 +19,11 @@ jobs:
       
       - name: Install dependencies
         run: |
+         
+          npm cache clean --force
+          rm -rf node_modules package-lock.json
           npm install
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-      
+          
       - name: Build React App
         run: |
           npm run build
