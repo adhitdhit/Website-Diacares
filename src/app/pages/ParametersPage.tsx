@@ -35,6 +35,8 @@ export function ParametersPage() {
   const [patientName, setPatientName] = useState<string>('');
   const [patientGender, setPatientGender] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+
+
   
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -53,6 +55,8 @@ export function ParametersPage() {
   });
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+  
 
   // Load data pasien dari sessionStorage
   useEffect(() => {
@@ -78,6 +82,19 @@ export function ParametersPage() {
     
     setIsLoaded(true);
   }, [navigate]);
+
+    // ✅ AUTO-RESET: Kalau gender laki-laki, pregnancies auto jadi 0/null
+  useEffect(() => {
+    const isMale = patientGender === 'laki-laki';
+    
+    if (isMale && parameters.pregnancies !== null && parameters.pregnancies !== 0) {
+      console.log('🔒 Auto-reset pregnancies untuk pasien laki-laki');
+      setParameters((prev) => ({ ...prev, pregnancies: 0 }));
+    }
+  }, [patientGender]);
+
+  // ✅ HELPER: Cek apakah pasien laki-laki
+  const isMalePatient = patientGender === 'laki-laki';
 
   // ✅ HANDLE CHANGE: Set null jika kosong, number jika ada nilai
   const handleChange = (field: keyof DiabetesParameters, value: string) => {
@@ -221,20 +238,35 @@ export function ParametersPage() {
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Pregnancies */}
+                               {/* Pregnancies */}
                 <div className="space-y-2">
-                  <Label htmlFor="pregnancies" className="text-base font-semibold">Jumlah Kehamilan</Label>
+                  <Label htmlFor="pregnancies" className="text-base font-semibold">
+                    Jumlah Kehamilan
+                    {isMalePatient && (
+                      <span className="text-xs text-gray-500 ml-2">(Tidak berlaku)</span>
+                    )}
+                  </Label>
                   <Input
                     id="pregnancies"
                     type="number"
                     min="0"
                     step="1"
-                    placeholder="0"
-                    // ✅ NO REQUIRED - Boleh kosong
+                    placeholder={isMalePatient ? "Tidak berlaku" : "Contoh: 2"}
+                    disabled={isMalePatient} 
                     value={parameters.pregnancies ?? ""}
                     onChange={(e) => handleChange("pregnancies", e.target.value)}
-                    className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
+                    className={`h-12 border-2 rounded-xl transition-all
+                      ${isMalePatient 
+                        ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                        : 'border-red-200 focus:border-red-500'
+                      }`}
                   />
+                  {isMalePatient && (
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Parameter ini hanya untuk pasien perempuan
+                    </p>
+                  )}
                 </div>
 
                 {/* Glucose - NO LONGER REQUIRED */}
