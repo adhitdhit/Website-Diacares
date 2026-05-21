@@ -52,3 +52,10 @@
     --ring: 346.8 77.2% 49.8%;
   }
 }
+
+/* ✅ FIX: Safe Area untuk Mobile App (Status Bar/Notch) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body, html {
+    padding-top: env(safe-area-inset-top);
+  }
+}
