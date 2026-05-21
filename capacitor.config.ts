@@ -6,9 +6,9 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     StatusBar: {
-      style: 'LIGHT', // 'DARK' atau 'LIGHT'
-      backgroundColor: '#dc2626', // Sesuaikan warna header DiaCares
-      overlaysWebView: false // ← INI KUNCI! Gak numpuk lagi
+      style: 'LIGHT',
+      backgroundColor: '#dc2626',
+      overlaysWebView: true  // ← UBAH KE true!
     },
     SplashScreen: {
       launchShowDuration: 2000,
