@@ -235,7 +235,7 @@ const formatDate = (dateString: string) => {
             
             {/* Logo & Title - Responsive */}
             {/* UBAH DI SINI: tambah sm:ml-4 sm:pl-4 */}
-            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-5 sm:pl-5">
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto sm:ml-6 sm:pl-6">
               
               {/* Logo - Ukuran Responsive */}
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg flex-shrink-0">
