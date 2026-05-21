@@ -89,7 +89,7 @@
   }
 
   /* 3. KHUSUS TOMBOL RIWAYAT (PUTIH) & ASESMEN BARU (MERAH) */
-  /* Ini untuk memastikan tombol-tombol utama mengambil lebar penuh */
+
   header .flex-col, header > div.flex {
     width: 100% !important;
     gap: 8px !important;
