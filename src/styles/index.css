@@ -1,139 +1,54 @@
-@import './fonts.css';
-@import './tailwind.css';
 @import './theme.css';
+@import './fonts.css';
 
-/* Pastikan semua elemen interaktif punya cursor pointer */
-button,
-a,
-[role="button"],
-.clickable {
-  cursor: pointer;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Untuk elemen dengan onClick handler */
-[onclick] {
-  cursor: pointer;
-}
-
-/* Hover effect untuk memastikan */
-button:hover,
-a:hover,
-[role="button"]:hover {
-  cursor: pointer;
-}
-
-/* === MEDICAL THEME AUTO-OVERRIDE === */
-
-/* Header & Hero */
-.bg-gradient-to-r.from-red-600,
-.bg-gradient-to-r.from-red-500 {
-  --tw-gradient-from: #9F1239;
-  --tw-gradient-via: #BE123C;
-  --tw-gradient-to: #E11D48;
-}
-
-/* Buttons */
-.bg-red-600 {
-  background-color: #DC2626 !important;
-}
-
-.bg-red-600:hover {
-  background-color: #B91C1C !important;
-}
-
-/* Cards */
-.bg-red-50 {
-  background-color: #FFF1F2 !important;
-}
-
-/* Borders */
-.border-red-200 {
-  border-color: #FECDD3 !important;
-}
-
-.border-red-300 {
-  border-color: #FDA4AF !important;
-}
-
-/* Text */
-.text-red-600 {
-  color: #DC2626 !important;
-}
-
-/* Gradient to orange → ganti ke rose */
-.to-orange-500,
-.to-orange-600 {
-  --tw-gradient-to: #F43F5E !important;
-}
-
-/* Smooth transitions */
-button, 
-input, 
-.card, 
-.bg-gradient-to-br,
-.bg-gradient-to-r {
-  transition: all 0.3s ease-in-out;
-}
-
-/* Hover effects */
-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.3);
-}
-
-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-/* Input focus */
-input:focus,
-textarea:focus {
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
-}
-
-/* Card hover */
-.card:hover,
-[class*="bg-white"]:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-/* === FIX HEADER DI MOBILE (BIAR GAK KEPOTONG) === */
-@media screen and (max-width: 640px) {
-  /* Header container lebih rapat */
-  header, nav, [class*="Header"], [class*="Navbar"] {
-    padding: 0.5rem 0.75rem !important;
-    gap: 0.4rem !important;
+/* ✅ CSS VARIABLES FOR SHADCN/UI */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 346.8 77.2% 49.8%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 346.8 77.2% 49.8%;
+    --radius: 0.5rem;
   }
-  
-  /* Sembunyikan subtitle/deskripsi di mobile */
-  header p:not(.font-bold), 
-  .subtitle, 
-  .description, 
-  [class*="desc"] {
-    display: none !important;
-  }
-  
-  /* Perkecil judul/logo */
-  header h1, header h2, .logo-text {
-    font-size: 1rem !important;
-    white-space: nowrap !important;
-  }
-  
-  /* Tombol navigasi: perkecil padding & font */
-  header button, 
-  header a, 
-  [class*="Button"], 
-  [class*="btn"] {
-    padding: 0.35rem 0.6rem !important;
-    font-size: 0.7rem !important;
-    min-height: auto !important;
-    white-space: nowrap !important;
-  }
-  
-  /* Kalau tombol ada icon + text, sembunyikan text di mobile (biar cuma icon) */
-  header button svg + span,
-  header button .icon + span,
-  header button p {
-    display: none !important;
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 346.8 77.2% 49.8%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 346.8 77.2% 49.8%;
   }
 }
