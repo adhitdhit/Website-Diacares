@@ -450,7 +450,7 @@ export function AboutPage() {
                 © 2026 DiaCARES - Diabetes Care & Risk Evaluation System
               </p>
               <p className="text-red-300 text-sm">
-                Untuk keperluan skrining dan edukasi. Bukan pengganti konsultasi medis profesional.
+                Untuk keperluan skrining dan edukasi
               </p>
             </div>
           </div>

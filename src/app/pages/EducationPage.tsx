@@ -674,30 +674,30 @@ export function EducationPage() {
           )}
 
           {activeSection === 'faq' && (
-            <div className="space-y-4 mb-16">
-              {educationData.faq.map((faq, idx) => (
-                <Card key={idx} className="border-2 border-red-100">
-                  <button
-                    onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                    className="w-full p-4 flex items-center justify-between text-left hover:bg-red-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                        {idx + 1}
-                      </div>
-                      <span className="font-semibold text-gray-900">{faq.q}</span>
-                    </div>
-                    {openFaq === idx ? <ChevronUp className="w-5 h-5 text-red-600" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-                  </button>
-                  {openFaq === idx && (
-                    <div className="px-4 pb-4 pl-16">
-                      <p className="text-gray-700 text-sm leading-relaxed">{faq.a}</p>
-                    </div>
-                  )}
-                </Card>
-              ))}
+  <div className="space-y-4 mb-16 px-2"> {/* ✅ TAMBAH px-2 */}
+    {educationData.faq.map((faq, idx) => (
+      <Card key={idx} className="border-2 border-red-100 overflow-hidden"> {/* ✅ TAMBAH overflow-hidden */}
+        <button
+          onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+          className="w-full p-4 flex items-center justify-between text-left hover:bg-red-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 flex-1 min-w-0"> {/* ✅ TAMBAH flex-1 min-w-0 */}
+            <div className="w-8 h-8 bg-gradient-to-br from-red-600 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"> {/* ✅ TAMBAH flex-shrink-0 */}
+              {idx + 1}
             </div>
-          )}
+            <span className="font-semibold text-gray-900 truncate">{faq.q}</span> {/* ✅ TAMBAH truncate */}
+          </div>
+          {openFaq === idx ? <ChevronUp className="w-5 h-5 text-red-600 flex-shrink-0 ml-2" /> : <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />} {/* ✅ TAMBAH flex-shrink-0 ml-2 */}
+        </button>
+        {openFaq === idx && (
+          <div className="px-4 pb-4 pl-16">
+            <p className="text-gray-700 text-sm leading-relaxed">{faq.a}</p>
+          </div>
+        )}
+      </Card>
+    ))}
+  </div>
+)}
         </div>
 
         {/* Footer */}
@@ -739,7 +739,7 @@ export function EducationPage() {
                 © 2026 DiaCARES - Diabetes Care & Risk Evaluation System
               </p>
               <p className="text-red-300 text-sm">
-                Untuk keperluan skrining dan edukasi. Bukan pengganti konsultasi medis profesional.
+                Untuk keperluan skrining dan edukasi
               </p>
             </div>
           </div>
