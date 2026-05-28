@@ -87,8 +87,8 @@ export function ParametersPage() {
   useEffect(() => {
     const isMale = patientGender === 'laki-laki';
     
-    if (isMale && parameters.pregnancies !== null && parameters.pregnancies !== 0) {
-      console.log('🔒 Auto-reset pregnancies untuk pasien laki-laki');
+    if (isMale && parameters.pregnancies !== 0) {
+      console.log('🔒 Auto-reset pregnancies 0 untuk pasien laki-laki');
       setParameters((prev) => ({ ...prev, pregnancies: 0 }));
     }
   }, [patientGender]);
@@ -119,7 +119,7 @@ export function ParametersPage() {
       
       // ✅ PAYLOAD: Kirim SEMUA field (null juga dikirim)
       const payload = {
-        Pregnancies: params.pregnancies,
+        Pregnancies: isMalePatient ? 0 : params.pregnancies,
         Glucose: params.glucose,
         BloodPressure: params.bloodPressure,
         SkinThickness: params.skinThickness,
