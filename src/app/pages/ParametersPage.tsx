@@ -355,7 +355,7 @@ export function ParametersPage() {
                     type="number"
                     min="0"
                     step="0.001"
-                    placeholder="0.5"
+                    placeholder="0"
                     value={parameters.diabetesPedigreeFunction ?? ""}
                     onChange={(e) => handleChange("diabetesPedigreeFunction", e.target.value)}
                     className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
