@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
-import { AlertCircle, CheckCircle, Home, RefreshCw, Info, Printer, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Home, RefreshCw, Info, Printer, Loader2, Clock as ClockIcon, Activity, Phone, ArrowUp } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 // ✅ TYPE: Allow null untuk field yang boleh kosong
@@ -45,6 +45,10 @@ if (!API_URL) {
   console.error('⚠️ VITE_API_URL belum diset! Cek file .env atau .env.production');
 }
 
+// Import Logo
+// @ts-ignore
+import logoImage from "@/assets/logoss.png";
+
 // Helper: warna risk score
 const getRiskColor = (score: number) => {
   if (score >= 70) return { bg: 'from-red-600 to-red-500', text: 'text-red-600', border: 'border-red-300', light: 'bg-red-50', badge: 'bg-red-600' };
@@ -80,6 +84,20 @@ export function ResultsPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const [predictionId, setPredictionId] = useState<string | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Handle scroll for back-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // 1️⃣ Init: HANYA LOAD DATA & POLLING (TIDAK SUBMIT!)
   useEffect(() => {
@@ -331,15 +349,15 @@ export function ResultsPage() {
 
     // ✅ Data parameter dengan handle null
     const clinicalData = [
-  { label: 'Glukosa Darah (OGTT)', value: parameters.glucose, unit: 'mg/dL', range: [0, 140] as [number, number] },
-  { label: 'Tekanan Darah (Diastolik)', value: parameters.bloodPressure, unit: 'mmHg', range: [60, 80] as [number, number] }, 
-  { label: 'BMI', value: parameters.bmi, unit: 'kg/m^2', range: [18.5, 22.9] as [number, number], decimals: 1 },
-  { label: 'Insulin', value: parameters.insulin, unit: 'uU/mL', range: [2, 20] as [number, number] },
-  { label: 'Usia', value: parameters.age, unit: 'tahun', range: [0, 35] as [number, number] },
-  { label: 'Jumlah Kehamilan', value: parameters.pregnancies, unit: 'kali', range: [0, 3] as [number, number] },
-  { label: 'Ketebalan Kulit', value: parameters.skinThickness, unit: 'mm', range: [10, 22] as [number, number] },
-  { label: 'Riwayat Keluarga', value: parameters.diabetesPedigreeFunction, unit: '', range: [0, 0.5] as [number, number], decimals: 1 },
-];
+      { label: 'Glukosa Darah (OGTT)', value: parameters.glucose, unit: 'mg/dL', range: [0, 140] as [number, number] },
+      { label: 'Tekanan Darah (Diastolik)', value: parameters.bloodPressure, unit: 'mmHg', range: [60, 80] as [number, number] }, 
+      { label: 'BMI', value: parameters.bmi, unit: 'kg/m^2', range: [18.5, 22.9] as [number, number], decimals: 1 },
+      { label: 'Insulin', value: parameters.insulin, unit: 'uU/mL', range: [2, 20] as [number, number] },
+      { label: 'Usia', value: parameters.age, unit: 'tahun', range: [0, 35] as [number, number] },
+      { label: 'Jumlah Kehamilan', value: parameters.pregnancies, unit: 'kali', range: [0, 3] as [number, number] },
+      { label: 'Ketebalan Kulit', value: parameters.skinThickness, unit: 'mm', range: [10, 22] as [number, number] },
+      { label: 'Riwayat Keluarga', value: parameters.diabetesPedigreeFunction, unit: '', range: [0, 0.5] as [number, number], decimals: 1 },
+    ];
 
     clinicalData.forEach((item, index) => {
       if (index > 0) {
@@ -438,7 +456,7 @@ export function ResultsPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
           <p className="text-red-600 text-lg font-medium">Memuat data pasien...</p>
@@ -449,7 +467,7 @@ export function ResultsPage() {
 
   if (!prediction) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
           <p className="text-red-600 text-lg font-medium">Menyiapkan prediksi...</p>
@@ -462,234 +480,352 @@ export function ResultsPage() {
   const colors = isCompleted ? getRiskColor(prediction.Risk_Score!) : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-4 py-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        
-        {/* Status Banner */}
-        <div className={`flex items-center gap-3 p-4 rounded-xl border-2 ${
-          isCompleted 
-            ? 'bg-green-50 border-green-300 text-green-700' 
-            : 'bg-blue-50 border-blue-300 text-blue-700'
-        }`}>
-          {isCompleted ? (
-            <CheckCircle className="w-5 h-5" />
-          ) : (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          )}
-          <div className="flex-1">
-            <p className="font-semibold">
-              {isCompleted ? '✅ Prediksi Selesai!' : '⏳ Sedang Diproses'}
-            </p>
-          </div>
-          {!isCompleted && (
-            <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isChecking}>
-              {isChecking ? 'Memeriksa...' : 'Cek Ulang'}
-            </Button>
-          )}
-        </div>
-
-        <Card className="border-2 border-red-200 shadow-2xl">
-          <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4 flex-1">
-                {/* Gender Icon */}
-                <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
-                  patientGender.toLowerCase() === 'laki-laki' 
-                    ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
-                    : 'bg-gradient-to-br from-pink-500 to-rose-500'
-                }`}>
-                  <span className="text-xl text-white font-bold">
-                    {patientGender.toLowerCase() === 'laki-laki' ? 'L' : patientGender.toLowerCase() === 'perempuan' ? 'P' : '?'}
-                  </span>
-                </div>
-                <div>
-                  <CardTitle className="text-2xl text-white flex items-center gap-2">
-                    <CheckCircle className="w-6 h-6" />
-                    Hasil Prediksi
-                  </CardTitle>
-                  <CardDescription className="text-white/90 text-base">
-                    Pasien: {patientName} • {patientGender}
-                  </CardDescription>
-                  {prediction._id && (
-                    <p className="text-xs text-white/70 mt-1">
-                      ID: <code className="bg-white/20 px-1 rounded">{prediction._id.slice(-8)}</code>
-                    </p>
-                  )}
-                </div>
-              </div>
-              {isCompleted && prediction.Prediction_Result === 1 ? (
-                <AlertCircle className="w-12 h-12 text-white/90 animate-pulse" />
-              ) : isCompleted ? (
-                <CheckCircle className="w-12 h-12 text-white/90" />
-              ) : (
-                <Loader2 className="w-12 h-12 text-white/90 animate-spin" />
-              )}
-            </div>
-          </CardHeader>
-          
-          <CardContent className="space-y-6 pt-6">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex flex-col">
+      
+      {/* ============================================ */}
+      {/* 📌 HEADER / NAVIGATION BAR */}
+      {/* ============================================ */}
+      <nav className="bg-white shadow-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-3">
             
-            {/* Risk Score */}
-            {isCompleted && colors && (
-              <>
-                <div className={`text-center p-6 ${colors.light} rounded-2xl border-2 ${colors.border}`}>
-                  <p className="text-gray-700 mb-2 font-semibold">Diabetes Risk Score</p>
-                  <div className={`text-6xl font-bold mb-4 bg-gradient-to-r ${colors.bg} bg-clip-text text-transparent`}>
-                    {prediction.Risk_Score}%
-                  </div>
-                  <div className={`inline-block px-6 py-3 rounded-full text-base font-bold ${colors.badge} text-white`}>
-                    Risiko {prediction.Risk_Level}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-medium">
-                    <span className="text-gray-700">Progress Risiko</span>
-                    <span className={colors.text}>{prediction.Risk_Score}/100</span>
-                  </div>
-                  <Progress value={prediction.Risk_Score!} className="h-4 bg-gray-200" />
-                </div>
-              </>
-            )}
-
-            {/* ✅ Parameter yang Diinput - Handle null */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
-                <Info className="w-5 h-5 text-red-600" />
-                Parameter yang Diinput:
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {parameters && Object.entries(parameters).map(([key, value]: [string, any]) => {
-                  const labels: Record<string, string> = {
-                    age: 'Usia', glucose: 'Glukosa', bloodPressure: 'Tekanan Darah (Diastolik/Nilai Bawah)',
-                    bmi: 'BMI', insulin: 'Insulin', pregnancies: 'Jumlah Kehamilan',
-                    skinThickness: 'Ketebalan Kulit', diabetesPedigreeFunction: 'Riwayat Keluarga'
-                  };
-                  const units: Record<string, string> = {
-                    glucose: 'mg/dL', bloodPressure: 'mmHg', bmi: '', insulin: 'uU/mL',
-                    age: 'tahun', pregnancies: 'kali', skinThickness: 'mm', diabetesPedigreeFunction: ''
-                  };
-                  const ranges: Record<string, [number, number]> = {
-                    glucose: [0, 140], bloodPressure: [60, 80], bmi: [18.5, 22.9],
-                    insulin: [2, 20], age: [0, 35], pregnancies: [0, 3],
-                    skinThickness: [10, 22], diabetesPedigreeFunction: [0, 0.5]
-                  };
-                  const decimals: Record<string, number> = {
-                    bmi: 1, diabetesPedigreeFunction: 1
-                  };
-
-                  const label = labels[key] || key;
-                  const unit = units[key] || '';
-                  const range = ranges[key];
-                  const dec = decimals[key] || 0;
-                  
-                  // ✅ Handle null untuk status dan display
-                  const status = range ? getParamStatus(value, range[0], range[1]) : { color: 'text-gray-400', bg: 'bg-gray-50 border-gray-200', label: '-' };
-                  const displayValue = formatValue(value, unit, dec);
-
-                  return (
-                    <div key={key} className={`p-3 rounded-lg border-2 ${status.bg}`}>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-semibold text-gray-700">{label}</span>
-                        <span className={`text-xs font-bold ${status.color}`}>
-                          {displayValue}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {value === null ? 'Tidak diisi' : range ? `Ideal: ${range[0]}-${range[1]} ${unit}`.trim() : '-'}
-                      </p>
-                    </div>
-                  );
-                })}
+            {/* Logo & Title */}
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg flex-shrink-0">
+                <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent truncate">
+                  DiaCARES
+                </h1>
+                <p className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">
+                  Diabetes Care & Risk Evaluation
+                </p>
               </div>
             </div>
 
-            {/* Rekomendasi */}
-            {isCompleted && prediction.Recommendations && prediction.Recommendations.length > 0 && (
+            {/* Navigation Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Link to="/history" className="w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto py-2"
+                >
+                  <ClockIcon className="w-4 h-4 mr-2" />
+                  Riwayat
+                </Button>
+              </Link>
+              <Link to="/assessment" className="w-full sm:w-auto">
+                <Button 
+                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg w-full sm:w-auto py-2"
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Asesmen Baru
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* ============================================ */}
+      {/* 📌 MAIN CONTENT - HASIL PREDIKSI */}
+      {/* ============================================ */}
+      <main className="flex-1 p-4 py-8">
+        <div className="max-w-3xl mx-auto space-y-6">
+          
+          {/* Status Banner */}
+          <div className={`flex items-center gap-3 p-4 rounded-xl border-2 ${
+            isCompleted 
+              ? 'bg-green-50 border-green-300 text-green-700' 
+              : 'bg-blue-50 border-blue-300 text-blue-700'
+          }`}>
+            {isCompleted ? (
+              <CheckCircle className="w-5 h-5" />
+            ) : (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            )}
+            <div className="flex-1">
+              <p className="font-semibold">
+                {isCompleted ? '✅ Prediksi Selesai!' : '⏳ Sedang Diproses'}
+              </p>
+            </div>
+            {!isCompleted && (
+              <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isChecking}>
+                {isChecking ? 'Memeriksa...' : 'Cek Ulang'}
+              </Button>
+            )}
+          </div>
+
+          <Card className="border-2 border-red-200 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4 flex-1">
+                  {/* Gender Icon */}
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
+                    patientGender.toLowerCase() === 'laki-laki' 
+                      ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
+                      : 'bg-gradient-to-br from-pink-500 to-rose-500'
+                  }`}>
+                    <span className="text-xl text-white font-bold">
+                      {patientGender.toLowerCase() === 'laki-laki' ? 'L' : patientGender.toLowerCase() === 'perempuan' ? 'P' : '?'}
+                    </span>
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl text-white flex items-center gap-2">
+                      <CheckCircle className="w-6 h-6" />
+                      Hasil Prediksi
+                    </CardTitle>
+                    <CardDescription className="text-white/90 text-base">
+                      Pasien: {patientName} • {patientGender}
+                    </CardDescription>
+                    {prediction._id && (
+                      <p className="text-xs text-white/70 mt-1">
+                        ID: <code className="bg-white/20 px-1 rounded">{prediction._id.slice(-8)}</code>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {isCompleted && prediction.Prediction_Result === 1 ? (
+                  <AlertCircle className="w-12 h-12 text-white/90 animate-pulse" />
+                ) : isCompleted ? (
+                  <CheckCircle className="w-12 h-12 text-white/90" />
+                ) : (
+                  <Loader2 className="w-12 h-12 text-white/90 animate-spin" />
+                )}
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-6 pt-6">
+              
+              {/* Risk Score */}
+              {isCompleted && colors && (
+                <>
+                  <div className={`text-center p-6 ${colors.light} rounded-2xl border-2 ${colors.border}`}>
+                    <p className="text-gray-700 mb-2 font-semibold">Diabetes Risk Score</p>
+                    <div className={`text-6xl font-bold mb-4 bg-gradient-to-r ${colors.bg} bg-clip-text text-transparent`}>
+                      {prediction.Risk_Score}%
+                    </div>
+                    <div className={`inline-block px-6 py-3 rounded-full text-base font-bold ${colors.badge} text-white`}>
+                      Risiko {prediction.Risk_Level}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-gray-700">Progress Risiko</span>
+                      <span className={colors.text}>{prediction.Risk_Score}/100</span>
+                    </div>
+                    <Progress value={prediction.Risk_Score!} className="h-4 bg-gray-200" />
+                  </div>
+                </>
+              )}
+
+              {/* ✅ Parameter yang Diinput - Handle null */}
               <div className="space-y-3">
                 <h4 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
-                  Rekomendasi Medis:
+                  <Info className="w-5 h-5 text-red-600" />
+                  Parameter yang Diinput:
                 </h4>
-                {prediction.Recommendations.map((rec: string, i: number) => (
-                  <div key={i} className="flex items-start gap-3 p-4 bg-white-50 rounded-lg border border-white-100 hover:border-white-200 transition-all">
-                    <span className="text-red-600 font-bold text-lg">{i + 1}.</span>
-                    <p className="text-gray-700 text-sm flex-1">{rec}</p>
-                  </div>
-                ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {parameters && Object.entries(parameters).map(([key, value]: [string, any]) => {
+                    const labels: Record<string, string> = {
+                      age: 'Usia', glucose: 'Glukosa', bloodPressure: 'Tekanan Darah (Diastolik/Nilai Bawah)',
+                      bmi: 'BMI', insulin: 'Insulin', pregnancies: 'Jumlah Kehamilan',
+                      skinThickness: 'Ketebalan Kulit', diabetesPedigreeFunction: 'Riwayat Keluarga'
+                    };
+                    const units: Record<string, string> = {
+                      glucose: 'mg/dL', bloodPressure: 'mmHg', bmi: '', insulin: 'uU/mL',
+                      age: 'tahun', pregnancies: 'kali', skinThickness: 'mm', diabetesPedigreeFunction: ''
+                    };
+                    const ranges: Record<string, [number, number]> = {
+                      glucose: [0, 140], bloodPressure: [60, 80], bmi: [18.5, 22.9],
+                      insulin: [2, 20], age: [0, 35], pregnancies: [0, 3],
+                      skinThickness: [10, 22], diabetesPedigreeFunction: [0, 0.5]
+                    };
+                    const decimals: Record<string, number> = {
+                      bmi: 1, diabetesPedigreeFunction: 1
+                    };
+
+                    const label = labels[key] || key;
+                    const unit = units[key] || '';
+                    const range = ranges[key];
+                    const dec = decimals[key] || 0;
+                    
+                    // ✅ Handle null untuk status dan display
+                    const status = range ? getParamStatus(value, range[0], range[1]) : { color: 'text-gray-400', bg: 'bg-gray-50 border-gray-200', label: '-' };
+                    const displayValue = formatValue(value, unit, dec);
+
+                    return (
+                      <div key={key} className={`p-3 rounded-lg border-2 ${status.bg}`}>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold text-gray-700">{label}</span>
+                          <span className={`text-xs font-bold ${status.color}`}>
+                            {displayValue}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {value === null ? 'Tidak diisi' : range ? `Ideal: ${range[0]}-${range[1]} ${unit}`.trim() : '-'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            )}
 
-            {/* Jika masih pending */}
-            {!isCompleted && (
-              <div className="text-center p-6 bg-blue-50 rounded-xl border-2 border-blue-200">
-                <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-3" />
-                <p className="text-blue-700 font-medium">Menunggu hasil dari Machine Learning...</p>
-                <p className="text-sm text-blue-600 mt-1">Hasil akan muncul otomatis dalam beberapa detik</p>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="pt-4 border-t-2 border-red-100 space-y-3">
-              <Button 
-                onClick={handlePrintPDF} 
-                className="w-full h-12 text-base font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 border-2 border-blue-300 flex items-center justify-center gap-2" 
-                variant="outline"
-              >
-                <Printer className="w-5 h-5" />
-                Cetak Laporan PDF
-              </Button>
-
-              <Button 
-                onClick={handleNewAssessment} 
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-red-600 via-red-500 to-orange-600 hover:from-red-700 hover:via-red-600 hover:to-orange-700 text-white shadow-lg"
-              >
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Asesmen Pasien Baru
-              </Button>
-
-              <Button 
-                onClick={handleReset} 
-                variant="ghost" 
-                className="w-full h-12 text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              >
-                <Home className="w-5 h-5 mr-2" />
-                Kembali ke Beranda
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Disclaimer */}
-        <div className="text-center text-xs text-gray-600 p-4 bg-red-50 rounded-xl border-2 border-red-200">
-          <p className="font-medium">⚠️ Hasil ini hanya untuk tujuan skrining dan edukasi.</p>
-          <p>Konsultasikan dengan tenaga medis profesional untuk diagnosis dan penanganan yang tepat.</p>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-green-50 backdrop-blur-sm p-4 rounded-xl text-center shadow-md border-2 border-green-300">
-            <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
-            <div className="text-sm font-semibold text-green-700">Data Pasien</div>
-          </div>
-          <div className="bg-green-50 backdrop-blur-sm p-4 rounded-xl text-center shadow-md border-2 border-green-300">
-            <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
-            <div className="text-sm font-semibold text-green-700">Parameter</div>
-          </div>
-          <div className={`backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 ${
-            isCompleted ? 'bg-green-50 border-green-300' : 'bg-blue-50 border-blue-300'
-          }`}>
-            <div className="flex justify-center mb-1">
-              {isCompleted ? (
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              ) : (
-                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              {/* Rekomendasi */}
+              {isCompleted && prediction.Recommendations && prediction.Recommendations.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    Rekomendasi Medis:
+                  </h4>
+                  {prediction.Recommendations.map((rec: string, i: number) => (
+                    <div key={i} className="flex items-start gap-3 p-4 bg-white-50 rounded-lg border border-white-100 hover:border-white-200 transition-all">
+                      <span className="text-red-600 font-bold text-lg">{i + 1}.</span>
+                      <p className="text-gray-700 text-sm flex-1">{rec}</p>
+                    </div>
+                  ))}
+                </div>
               )}
+
+              {/* Jika masih pending */}
+              {!isCompleted && (
+                <div className="text-center p-6 bg-blue-50 rounded-xl border-2 border-blue-200">
+                  <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-3" />
+                  <p className="text-blue-700 font-medium">Menunggu hasil dari Machine Learning...</p>
+                  <p className="text-sm text-blue-600 mt-1">Hasil akan muncul otomatis dalam beberapa detik</p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="pt-4 border-t-2 border-red-100 space-y-3">
+                <Button 
+                  onClick={handlePrintPDF} 
+                  className="w-full h-12 text-base font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 border-2 border-blue-300 flex items-center justify-center gap-2" 
+                  variant="outline"
+                >
+                  <Printer className="w-5 h-5" />
+                  Cetak Laporan PDF
+                </Button>
+
+                <Button 
+                  onClick={handleNewAssessment} 
+                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-red-600 via-red-500 to-orange-600 hover:from-red-700 hover:via-red-600 hover:to-orange-700 text-white shadow-lg"
+                >
+                  <RefreshCw className="w-5 h-5 mr-2" />
+                  Asesmen Pasien Baru
+                </Button>
+
+                <Button 
+                  onClick={handleReset} 
+                  variant="ghost" 
+                  className="w-full h-12 text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  <Home className="w-5 h-5 mr-2" />
+                  Kembali ke Beranda
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Disclaimer */}
+          <div className="text-center text-xs text-gray-600 p-4 bg-red-50 rounded-xl border-2 border-red-200">
+            <p className="font-medium">⚠️ Hasil ini hanya untuk tujuan skrining dan edukasi.</p>
+            <p>Konsultasikan dengan tenaga medis profesional untuk diagnosis dan penanganan yang tepat.</p>
+          </div>
+
+          {/* Progress Steps */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-green-50 backdrop-blur-sm p-4 rounded-xl text-center shadow-md border-2 border-green-300">
+              <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
+              <div className="text-sm font-semibold text-green-700">Data Pasien</div>
             </div>
-            <div className={`text-sm font-semibold ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>Hasil</div>
+            <div className="bg-green-50 backdrop-blur-sm p-4 rounded-xl text-center shadow-md border-2 border-green-300">
+              <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
+              <div className="text-sm font-semibold text-green-700">Parameter</div>
+            </div>
+            <div className={`backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 ${
+              isCompleted ? 'bg-green-50 border-green-300' : 'bg-blue-50 border-blue-300'
+            }`}>
+              <div className="flex justify-center mb-1">
+                {isCompleted ? (
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                ) : (
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                )}
+              </div>
+              <div className={`text-sm font-semibold ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>Hasil</div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* ============================================ */}
+      {/* 📌 FOOTER */}
+      {/* ============================================ */}
+      <footer className="bg-gradient-to-r from-red-900 via-red-800 to-orange-900 text-white py-8 px-4 mt-auto">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                  <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
+                </div>
+                <h3 className="text-lg font-bold">DiaCARES</h3>
+              </div>
+              <p className="text-red-200 text-sm">
+                Platform digital terpercaya untuk skrining dan deteksi dini risiko diabetes mellitus.
+              </p>
+            </div>
+            
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-bold mb-2">Tautan Cepat</h4>
+              <div className="space-y-1 text-sm text-red-200">
+                <Link to="/" className="block hover:text-white transition-colors">Beranda</Link>
+                <Link to="/assessment" className="block hover:text-white transition-colors">Asesmen Baru</Link>
+                <Link to="/history" className="block hover:text-white transition-colors">Riwayat</Link>
+                <Link to="/education" className="block hover:text-white transition-colors">Edukasi</Link>
+              </div>
+            </div>
+            
+            {/* Contact */}
+            <div>
+              <h4 className="font-bold mb-2">Kontak Kami</h4>
+              <div className="space-y-1 text-sm text-red-200">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <span>info@diacares.id</span>
+                </div>
+                <div>📍 Bandung, Indonesia</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Copyright */}
+          <div className="border-t border-red-700 pt-4 text-center">
+            <p className="text-red-100 text-sm">
+              © 2026 DiaCARES - Diabetes Care & Risk Evaluation System
+            </p>
+            <p className="text-red-300 text-xs mt-1">
+              Untuk keperluan skrining dan edukasi
+            </p>
+          </div>
+        </div>
+      </footer>
+
+      {/* Back to Top Button */}
+      {showScrollTop && (
+        <Button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-2xl z-50"
+          aria-label="Kembali ke atas"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </Button>
+      )}
     </div>
   );
 }

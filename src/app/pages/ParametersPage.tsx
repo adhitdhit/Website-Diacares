@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Activity, ArrowLeft, CheckCircle, User, AlertCircle } from "lucide-react";
+import { Activity, ArrowLeft, CheckCircle, User, AlertCircle, Clock as ClockIcon, BookOpen, Phone, ArrowUp } from "lucide-react";
 
 // ✅ TYPE: Allow null untuk field yang boleh kosong
 export interface DiabetesParameters {
@@ -25,6 +25,10 @@ export interface DiabetesParameters {
   diabetesPedigreeFunction: number | null;
 }
 
+// Import Logo
+// @ts-ignore
+import logoImage from "@/assets/logoss.png";
+
 export function ParametersPage() {
   const navigate = useNavigate();
   
@@ -35,9 +39,8 @@ export function ParametersPage() {
   const [patientName, setPatientName] = useState<string>('');
   const [patientGender, setPatientGender] = useState<string>('');
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
-
-  
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -56,7 +59,18 @@ export function ParametersPage() {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-  
+  // Handle scroll for back-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Load data pasien dari sessionStorage
   useEffect(() => {
@@ -83,7 +97,7 @@ export function ParametersPage() {
     setIsLoaded(true);
   }, [navigate]);
 
-    // ✅ AUTO-RESET: Kalau gender laki-laki, pregnancies auto jadi 0/null
+  // ✅ AUTO-RESET: Kalau gender laki-laki, pregnancies auto jadi 0
   useEffect(() => {
     const isMale = patientGender === 'laki-laki';
     
@@ -204,238 +218,354 @@ export function ParametersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-4 py-8">
-      <div className="max-w-3xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/assessment')}
-          className="mb-4 hover:bg-white/50 transition-all"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Kembali
-        </Button>
-
-        <Card className="shadow-2xl border-2 border-red-200">
-          <CardHeader className="bg-gradient-to-r from-red-50 via-rose-50 to-orange-50 border-b border-red-200">
-            <div className="flex items-center gap-3">
-              <div className="w-14 h-14 bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <Activity className="w-7 h-7 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex flex-col">
+      
+      {/* ============================================ */}
+      {/* 📌 HEADER / NAVIGATION BAR */}
+      {/* ============================================ */}
+      <nav className="bg-white shadow-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-3">
+            
+            {/* Logo & Title */}
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg flex-shrink-0">
+                <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
               </div>
-              <div>
-                <CardTitle className="text-2xl">Parameter Klinis</CardTitle>
-                <CardDescription className="text-base flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Pasien: {patientName} 
-                  {patientGender && (
-                    <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full ml-2 capitalize">
-                      {patientGender}
-                    </span>
-                  )}
-                </CardDescription>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent truncate">
+                  DiaCARES
+                </h1>
+                <p className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">
+                  Diabetes Care & Risk Evaluation
+                </p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                               {/* Pregnancies */}
-                <div className="space-y-2">
-                  <Label htmlFor="pregnancies" className="text-base font-semibold">
-                    Jumlah Kehamilan
-                    {isMalePatient && (
-                      <span className="text-xs text-gray-500 ml-2">(Tidak berlaku)</span>
-                    )}
-                  </Label>
-                  <Input
-                    id="pregnancies"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder={isMalePatient ? "Tidak berlaku" : "Contoh: 2"}
-                    disabled={isMalePatient} 
-                    value={parameters.pregnancies ?? ""}
-                    onChange={(e) => handleChange("pregnancies", e.target.value)}
-                    className={`h-12 border-2 rounded-xl transition-all
-                      ${isMalePatient 
-                        ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
-                        : 'border-red-200 focus:border-red-500'
-                      }`}
-                  />
-                  {isMalePatient && (
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Parameter ini hanya untuk pasien perempuan
-                    </p>
-                  )}
-                </div>
 
-                {/* Glucose - NO LONGER REQUIRED */}
-                <div className="space-y-2">
-                  <Label htmlFor="glucose" className="text-base font-semibold">
-                    Kadar Glukosa (mg/dL)
-                  </Label>
-                  <Input
-                    id="glucose"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    placeholder="Contoh: 120"
-                    // ✅ HAPUS required - Boleh kosong
-                    value={parameters.glucose ?? ""}
-                    onChange={(e) => handleChange("glucose", e.target.value)}
-                    className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
-                  />
-                </div>
-
-                {/* Blood Pressure */}
-                <div className="space-y-2">
-                  <Label htmlFor="bloodPressure" className="text-base font-semibold">Tekanan Darah Diastolik (Nilai Bawah/mmHg)</Label>
-                  <Input
-                    id="bloodPressure"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    placeholder="Contoh: 80"
-                    value={parameters.bloodPressure ?? ""}
-                    onChange={(e) => handleChange("bloodPressure", e.target.value)}
-                    className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
-                  />
-                </div>
-
-                {/* Skin Thickness */}
-                <div className="space-y-2">
-                  <Label htmlFor="skinThickness" className="text-base font-semibold">Ketebalan Kulit (mm)</Label>
-                  <Input
-                    id="skinThickness"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    placeholder="0"
-                    value={parameters.skinThickness ?? ""}
-                    onChange={(e) => handleChange("skinThickness", e.target.value)}
-                    className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
-                  />
-                </div>
-
-                {/* Insulin */}
-                <div className="space-y-2">
-                  <Label htmlFor="insulin" className="text-base font-semibold">Kadar Insulin (μU/mL)</Label>
-                  <Input
-                    id="insulin"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    placeholder="0"
-                    value={parameters.insulin ?? ""}
-                    onChange={(e) => handleChange("insulin", e.target.value)}
-                    className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
-                  />
-                </div>
-
-                {/* BMI */}
-                <div className="space-y-2">
-                  <Label htmlFor="bmi" className="text-base font-semibold">BMI (Body Mass Index)</Label>
-                  <Input
-                    id="bmi"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    placeholder="Contoh: 23.5"
-                    value={parameters.bmi ?? ""}
-                    onChange={(e) => handleChange("bmi", e.target.value)}
-                    className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
-                  />
-                </div>
-
-                {/* Diabetes Pedigree Function */}
-                <div className="space-y-2">
-                  <Label htmlFor="diabetesPedigreeFunction" className="text-base font-semibold">Riwayat Keluarga Diabetes</Label>
-                  <Input
-                    id="diabetesPedigreeFunction"
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    placeholder="0"
-                    value={parameters.diabetesPedigreeFunction ?? ""}
-                    onChange={(e) => handleChange("diabetesPedigreeFunction", e.target.value)}
-                    className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
-                  />
-                </div>
-
-                {/* Age - NO LONGER REQUIRED */}
-                <div className="space-y-2">
-                  <Label htmlFor="age" className="text-base font-semibold">
-                    Usia (tahun)
-                  </Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="Contoh: 35"
-                    // ✅ HAPUS required - Boleh kosong
-                    value={parameters.age ?? ""}
-                    onChange={(e) => handleChange("age", e.target.value)}
-                    className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
-                  />
-                </div>
-              </div>
-
-             
-
-              {/* Error Message */}
-              {errorMessage && (
-                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg border-2 border-red-200">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              {/* Save Status Message */}
-              {saveStatus === 'success' && (
-                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-                  <CheckCircle className="w-4 h-4" />
-                  Data tersimpan ke database
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                disabled={isSaving}
-                className="w-full h-14 text-lg bg-gradient-to-r from-red-600 via-red-500 to-orange-600 hover:from-red-700 hover:via-red-600 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Activity className="w-5 h-5 mr-2" />
-                    Lanjutkan ke Hasil Prediksi
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Progress Indicator */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <div className="bg-green-50 backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 border-green-300">
-            <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
-            <div className="text-sm font-semibold text-green-700">Data Pasien</div>
-          </div>
-          <div className="bg-white/90 backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 border-red-300">
-            <div className="text-3xl font-bold text-red-600 mb-1">2</div>
-            <div className="text-sm font-medium text-gray-700">Parameter</div>
-          </div>
-          <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl text-center shadow-md border border-gray-200">
-            <div className="text-3xl font-bold text-gray-400 mb-1">3</div>
-            <div className="text-sm text-gray-500">Hasil</div>
+            {/* Navigation Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Link to="/history" className="w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto py-2"
+                >
+                  <ClockIcon className="w-4 h-4 mr-2" />
+                  Riwayat
+                </Button>
+              </Link>
+              <Link to="/assessment" className="w-full sm:w-auto">
+                <Button 
+                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg w-full sm:w-auto py-2"
+                >
+                  <Activity className="w-4 h-4 mr-2" />
+                  Asesmen Baru
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      </nav>
+
+      {/* ============================================ */}
+      {/* 📌 MAIN CONTENT - FORM PARAMETERS */}
+      {/* ============================================ */}
+      <main className="flex-1 p-4 py-8">
+        <div className="max-w-3xl mx-auto">
+          
+          {/* Tombol Kembali */}
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/assessment')}
+            className="mb-4 hover:bg-white/50 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Kembali
+          </Button>
+
+          <Card className="shadow-2xl border-2 border-red-200">
+            <CardHeader className="bg-gradient-to-r from-red-50 via-rose-50 to-orange-50 border-b border-red-200">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <Activity className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Parameter Klinis</CardTitle>
+                  <CardDescription className="text-base flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Pasien: {patientName} 
+                    {patientGender && (
+                      <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full ml-2 capitalize">
+                        {patientGender}
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Pregnancies */}
+                  <div className="space-y-2">
+                    <Label htmlFor="pregnancies" className="text-base font-semibold">
+                      Jumlah Kehamilan
+                      {isMalePatient && (
+                        <span className="text-xs text-gray-500 ml-2">(Tidak berlaku)</span>
+                      )}
+                    </Label>
+                    <Input
+                      id="pregnancies"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder={isMalePatient ? "Tidak berlaku" : "Contoh: 2"}
+                      disabled={isMalePatient} 
+                      value={parameters.pregnancies ?? ""}
+                      onChange={(e) => handleChange("pregnancies", e.target.value)}
+                      className={`h-12 border-2 rounded-xl transition-all
+                        ${isMalePatient 
+                          ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                          : 'border-red-200 focus:border-red-500'
+                        }`}
+                    />
+                    {isMalePatient && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Parameter ini hanya untuk pasien perempuan
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Glucose */}
+                  <div className="space-y-2">
+                    <Label htmlFor="glucose" className="text-base font-semibold">
+                      Kadar Glukosa (mg/dL)
+                    </Label>
+                    <Input
+                      id="glucose"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Contoh: 120"
+                      value={parameters.glucose ?? ""}
+                      onChange={(e) => handleChange("glucose", e.target.value)}
+                      className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Blood Pressure */}
+                  <div className="space-y-2">
+                    <Label htmlFor="bloodPressure" className="text-base font-semibold">Tekanan Darah Diastolik (Nilai Bawah/mmHg)</Label>
+                    <Input
+                      id="bloodPressure"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Contoh: 80"
+                      value={parameters.bloodPressure ?? ""}
+                      onChange={(e) => handleChange("bloodPressure", e.target.value)}
+                      className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Skin Thickness */}
+                  <div className="space-y-2">
+                    <Label htmlFor="skinThickness" className="text-base font-semibold">Ketebalan Kulit (mm)</Label>
+                    <Input
+                      id="skinThickness"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="0"
+                      value={parameters.skinThickness ?? ""}
+                      onChange={(e) => handleChange("skinThickness", e.target.value)}
+                      className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Insulin */}
+                  <div className="space-y-2">
+                    <Label htmlFor="insulin" className="text-base font-semibold">Kadar Insulin (μU/mL)</Label>
+                    <Input
+                      id="insulin"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="0"
+                      value={parameters.insulin ?? ""}
+                      onChange={(e) => handleChange("insulin", e.target.value)}
+                      className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* BMI */}
+                  <div className="space-y-2">
+                    <Label htmlFor="bmi" className="text-base font-semibold">BMI (Body Mass Index)</Label>
+                    <Input
+                      id="bmi"
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      placeholder="Contoh: 23.5"
+                      value={parameters.bmi ?? ""}
+                      onChange={(e) => handleChange("bmi", e.target.value)}
+                      className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Diabetes Pedigree Function */}
+                  <div className="space-y-2">
+                    <Label htmlFor="diabetesPedigreeFunction" className="text-base font-semibold">Riwayat Keluarga Diabetes</Label>
+                    <Input
+                      id="diabetesPedigreeFunction"
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      placeholder="0"
+                      value={parameters.diabetesPedigreeFunction ?? ""}
+                      onChange={(e) => handleChange("diabetesPedigreeFunction", e.target.value)}
+                      className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
+                    />
+                  </div>
+
+                  {/* Age */}
+                  <div className="space-y-2">
+                    <Label htmlFor="age" className="text-base font-semibold">
+                      Usia (tahun)
+                    </Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="Contoh: 35"
+                      value={parameters.age ?? ""}
+                      onChange={(e) => handleChange("age", e.target.value)}
+                      className="h-12 border-2 border-red-200 focus:border-red-500 rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                {/* Error Message */}
+                {errorMessage && (
+                  <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg border-2 border-red-200">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {/* Save Status Message */}
+                {saveStatus === 'success' && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
+                    <CheckCircle className="w-4 h-4" />
+                    Data tersimpan ke database
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={isSaving}
+                  className="w-full h-14 text-lg bg-gradient-to-r from-red-600 via-red-500 to-orange-600 hover:from-red-700 hover:via-red-600 hover:to-orange-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Activity className="w-5 h-5 mr-2" />
+                      Lanjutkan ke Hasil Prediksi
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Progress Indicator */}
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            <div className="bg-green-50 backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 border-green-300">
+              <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
+              <div className="text-sm font-semibold text-green-700">Data Pasien</div>
+            </div>
+            <div className="bg-white/90 backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 border-red-300">
+              <div className="text-3xl font-bold text-red-600 mb-1">2</div>
+              <div className="text-sm font-medium text-gray-700">Parameter</div>
+            </div>
+            <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl text-center shadow-md border border-gray-200">
+              <div className="text-3xl font-bold text-gray-400 mb-1">3</div>
+              <div className="text-sm text-gray-500">Hasil</div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* ============================================ */}
+      {/* 📌 FOOTER */}
+      {/* ============================================ */}
+      <footer className="bg-gradient-to-r from-red-900 via-red-800 to-orange-900 text-white py-8 px-4 mt-auto">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+                  <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
+                </div>
+                <h3 className="text-lg font-bold">DiaCARES</h3>
+              </div>
+              <p className="text-red-200 text-sm">
+                Platform digital terpercaya untuk skrining dan deteksi dini risiko diabetes mellitus.
+              </p>
+            </div>
+            
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-bold mb-2">Tautan Cepat</h4>
+              <div className="space-y-1 text-sm text-red-200">
+                <Link to="/" className="block hover:text-white transition-colors">Beranda</Link>
+                <Link to="/assessment" className="block hover:text-white transition-colors">Asesmen Baru</Link>
+                <Link to="/history" className="block hover:text-white transition-colors">Riwayat</Link>
+                <Link to="/education" className="block hover:text-white transition-colors">Edukasi</Link>
+              </div>
+            </div>
+            
+            {/* Contact */}
+            <div>
+              <h4 className="font-bold mb-2">Kontak Kami</h4>
+              <div className="space-y-1 text-sm text-red-200">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  <span>info@diacares.id</span>
+                </div>
+                <div>📍 Bandung, Indonesia</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Copyright */}
+          <div className="border-t border-red-700 pt-4 text-center">
+            <p className="text-red-100 text-sm">
+              © 2026 DiaCARES - Diabetes Care & Risk Evaluation System
+            </p>
+            <p className="text-red-300 text-xs mt-1">
+              Untuk keperluan skrining dan edukasi
+            </p>
+          </div>
+        </div>
+      </footer>
+
+      {/* Back to Top Button */}
+      {showScrollTop && (
+        <Button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-2xl z-50"
+          aria-label="Kembali ke atas"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </Button>
+      )}
     </div>
   );
 }
