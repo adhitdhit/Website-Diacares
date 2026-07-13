@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import Swal from "sweetalert2";
 import axios from "axios";
+
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+
 import {
   Card,
   CardContent,
@@ -11,53 +14,69 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Activity, ArrowLeft, CheckCircle, User, AlertCircle, Clock as ClockIcon, BookOpen, Phone, ArrowUp } from "lucide-react";
 
-// ✅ TYPE: Allow null untuk field yang boleh kosong
-export interface DiabetesParameters {
-  age: number | null;
-  glucose: number | null;
-  bloodPressure: number | null;
-  bmi: number | null;
-  insulin: number | null;
-  pregnancies: number | null;
-  skinThickness: number | null;
-  diabetesPedigreeFunction: number | null;
-}
+import {
+  Activity,
+  ArrowLeft,
+  CheckCircle,
+  User,
+  AlertCircle,
+  Clock as ClockIcon,
+  Phone,
+  ArrowUp,
+} from "lucide-react";
 
-// Import Logo
 // @ts-ignore
 import logoImage from "@/assets/logoss.png";
 
+// ✅ TYPE: Allow null untuk field yang boleh kosong
+export interface DiabetesParameters {
+  pregnancies: number | null;
+  glucose: number | null;
+  bloodPressure: number | null;
+  skinThickness: number | null;
+  insulin: number | null;
+  bmi: number | null;
+  diabetesPedigreeFunction: number | null;
+  age: number | null;
+}
+
+
 export function ParametersPage() {
   const navigate = useNavigate();
-  
-  // REFS untuk prevent double submit
+
   const hasSubmittedRef = useRef(false);
   const isProcessingRef = useRef(false);
-  
-  const [patientName, setPatientName] = useState<string>('');
-  const [patientGender, setPatientGender] = useState<string>('');
-  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+
+  const [patientName, setPatientName] = useState("");
+  const [patientGender, setPatientGender] = useState("");
+
+  const [isLoaded, setIsLoaded] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  
-  // ✅ INITIAL STATE: Semua null (belum diisi)
-  const [parameters, setParameters] = useState<DiabetesParameters>({
-    age: null,
-    glucose: null,
-    bloodPressure: null,
-    bmi: null,
-    insulin: null,
-    pregnancies: null,
-    skinThickness: null,
-    diabetesPedigreeFunction: null,
-  });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
+
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const [parameters, setParameters] =
+    useState<DiabetesParameters>({
+      pregnancies: null,
+      glucose: null,
+      bloodPressure: null,
+      skinThickness: null,
+      insulin: null,
+      bmi: null,
+      diabetesPedigreeFunction: null,
+      age: null,
+    });
+
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000/api";
 
   // Handle scroll for back-to-top button
   useEffect(() => {
@@ -68,39 +87,40 @@ export function ParametersPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
+  const scrollToTop = () =>
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   // Load data pasien dari sessionStorage
   useEffect(() => {
     const savedName = sessionStorage.getItem('patientName');
     const savedGender = sessionStorage.getItem('patientGender');
-    
+
     if (!savedName) {
       console.warn('⚠️ No patientName found, redirecting to /assessment');
       navigate('/assessment', { replace: true });
       return;
     }
-    
+
     console.log('✅ ParametersPage loaded:', { name: savedName, gender: savedGender });
     setPatientName(savedName);
-    
+
     if (savedGender) {
       const normalizedGender = savedGender.toLowerCase();
       setPatientGender(normalizedGender);
     }
-    
+
     // ✅ Clear predictionId lama agar tidak bentrok
     sessionStorage.removeItem('predictionId');
-    
+
     setIsLoaded(true);
   }, [navigate]);
 
   // ✅ AUTO-RESET: Kalau gender laki-laki, pregnancies auto jadi 0
   useEffect(() => {
     const isMale = patientGender === 'laki-laki';
-    
+
     if (isMale && parameters.pregnancies !== 0) {
       console.log('🔒 Auto-reset pregnancies 0 untuk pasien laki-laki');
       setParameters((prev) => ({ ...prev, pregnancies: 0 }));
@@ -108,30 +128,47 @@ export function ParametersPage() {
   }, [patientGender]);
 
   // ✅ HELPER: Cek apakah pasien laki-laki
-  const isMalePatient = patientGender === 'laki-laki';
+  const isMalePatient =
+    patientGender === "laki-laki";
 
   // ✅ HANDLE CHANGE: Set null jika kosong, number jika ada nilai
-  const handleChange = (field: keyof DiabetesParameters, value: string) => {
-    setErrorMessage(''); // Clear error saat user mulai mengetik
-    
+  const handleChange = (
+    field: keyof DiabetesParameters,
+    value: string
+  ) => {
+    setErrorMessage("");
+
     if (value === "" || value === "-") {
-      setParameters((prev) => ({ ...prev, [field]: null }));
-    } else {
-      const numValue = parseFloat(value);
-      if (!isNaN(numValue)) {
-        setParameters((prev) => ({ ...prev, [field]: numValue }));
-      }
+      setParameters((prev) => ({
+        ...prev,
+        [field]: null,
+      }));
+
+      return;
+    }
+
+    const parsedValue = parseFloat(value);
+
+    if (!isNaN(parsedValue)) {
+      setParameters((prev) => ({
+        ...prev,
+        [field]: parsedValue,
+      }));
     }
   };
-
   // Fungsi simpan data ke MongoDB
-  const saveToMongoDB = async (params: DiabetesParameters, transactionId: string) => {
+  // ==========================================
+  // 📌 SIMPAN DATA KE MONGODB
+  // ==========================================
+  const saveToMongoDB = async (
+    params: DiabetesParameters,
+    transactionId: string
+  ) => {
     if (isSaving) return false;
-    
+
     try {
       setIsSaving(true);
-      
-      // ✅ PAYLOAD: Kirim SEMUA field (null juga dikirim)
+
       const payload = {
         Pregnancies: isMalePatient ? 0 : params.pregnancies,
         Glucose: params.glucose,
@@ -141,27 +178,35 @@ export function ParametersPage() {
         BMI: params.bmi,
         DiabetesPedigreeFunction: params.diabetesPedigreeFunction,
         Age: params.age,
-        patientName: patientName,
+        patientName,
         patientGender: patientGender.toLowerCase(),
-        source: 'web_app',
-        transactionId: transactionId
+        source: "web_app",
+        transactionId,
       };
 
-      console.log('📡 Sending to backend:', payload);
+      const response = await axios.post(
+        `${API_URL}/predict`,
+        payload
+      );
 
-      const response = await axios.post(`${API_URL}/predict`, payload);
-      
-      if (response.data.success) {
-        console.log('✅ Saved to MongoDB:', response.data.savedId);
-        setSaveStatus('success');
-        return response.data.savedId;
-      } else {
-        throw new Error(response.data.error || 'Unknown error');
+      if (!response.data.success) {
+        throw new Error(
+          response.data.error || "Terjadi kesalahan."
+        );
       }
+
+      setSaveStatus("success");
+      return response.data.savedId;
     } catch (error: any) {
-      console.error('❌ Gagal simpan ke MongoDB:', error);
-      setSaveStatus('error');
-      setErrorMessage(error.response?.data?.error || 'Gagal menyimpan data');
+      console.error(error);
+
+      setSaveStatus("error");
+
+      setErrorMessage(
+        error.response?.data?.error ??
+        "Gagal menyimpan data."
+      );
+
       return false;
     } finally {
       isProcessingRef.current = false;
@@ -169,44 +214,126 @@ export function ParametersPage() {
     }
   };
 
-  // ✅ SUBMIT: TANPA VALIDASI - Boleh kosong semua!
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ==========================================
+  // 📌 SUBMIT
+  // ==========================================
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
-    setErrorMessage('');
-    
-    // Cek sudah submit (prevent double call di Strict Mode)
+
+    setErrorMessage("");
+
+    // Cegah double submit
     if (hasSubmittedRef.current) {
-      console.log('⏭️ Already submitted, skipping...');
       return;
     }
-    
-    // ✅ TIDAK ADA VALIDASI - Langsung submit walaupun semua null!
-    const filledFields = Object.values(parameters).filter(v => v !== null && v !== undefined).length;
-    const totalFields = Object.keys(parameters).length;
-    
-    console.log(`📦 Submitting: ${filledFields}/${totalFields} fields filled`);
-    console.log('Parameters:', parameters);
-    
-    // Generate transaction ID
-    const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // ✅ Simpan parameters ke sessionStorage (dengan nilai null)
-    sessionStorage.setItem('parameters', JSON.stringify(parameters));
-    
-    // Set flag sudah submit
-    hasSubmittedRef.current = true;
-    
-    // Simpan ke MongoDB (null akan diproses oleh Rough Set model)
-    const savedId = await saveToMongoDB(parameters, transactionId);
-    
-    if (savedId) {
-      // ✅ Simpan predictionId ke sessionStorage untuk ResultsPage
-      sessionStorage.setItem('predictionId', savedId);
-      
-      // Navigate ke results page
-      console.log('🚀 Navigating to /results');
-      navigate('/results');
+
+    // Hitung jumlah parameter yang telah diisi
+    const totalParameters =
+      Object.keys(parameters).length;
+
+    const filledParameters =
+      Object.values(parameters).filter(
+        (value) => value !== null
+      ).length;
+
+    // Minimal 3 parameter
+    if (filledParameters < 3) {
+      await Swal.fire({
+        icon: "warning",
+
+        title: "Data Belum Mencukupi",
+
+        html: `
+        <div style="text-align:center">
+
+          <p style="font-size:15px;line-height:1.6">
+            Untuk memperoleh hasil prediksi yang lebih representatif,
+            silakan isi
+            <b>minimal 3 dari ${totalParameters} parameter klinis.</b>
+          </p>
+
+          <div style="
+            margin-top:18px;
+            padding:15px;
+            border-radius:14px;
+            background:#FEF2F2;
+            border:1px solid #FCA5A5;
+          ">
+
+            <div style="
+              font-size:32px;
+              font-weight:bold;
+              color:#DC2626;
+            ">
+              ${filledParameters}/${totalParameters}
+            </div>
+
+            <div style="
+              font-size:14px;
+              color:#7F1D1D;
+            ">
+              Parameter Telah Diisi
+            </div>
+
+          </div>
+
+          <p style="
+            margin-top:18px;
+            color:#6B7280;
+            font-size:13px;
+          ">
+            Semakin banyak parameter yang diisi,
+            hasil prediksi akan semakin representatif.
+          </p>
+
+        </div>
+      `,
+
+        confirmButtonText: "Baik, Saya Mengerti",
+
+        confirmButtonColor: "#DC2626",
+
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      });
+
+      return;
     }
+
+    console.log(
+      `📦 ${filledParameters}/${totalParameters} parameter`
+    );
+
+    const transactionId = `TXN-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 9)}`;
+
+    sessionStorage.setItem(
+      "parameters",
+      JSON.stringify(parameters)
+    );
+
+    hasSubmittedRef.current = true;
+
+    const savedId =
+      await saveToMongoDB(
+        parameters,
+        transactionId
+      );
+
+    if (!savedId) {
+      hasSubmittedRef.current = false;
+      return;
+    }
+
+    sessionStorage.setItem(
+      "predictionId",
+      savedId
+    );
+
+    navigate("/results");
   };
 
   if (!isLoaded) {
@@ -219,14 +346,14 @@ export function ParametersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex flex-col">
-      
+
       {/* ============================================ */}
       {/* 📌 HEADER / NAVIGATION BAR */}
       {/* ============================================ */}
       <nav className="bg-white shadow-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-3">
-            
+
             {/* Logo & Title */}
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg flex-shrink-0">
@@ -245,8 +372,8 @@ export function ParametersPage() {
             {/* Navigation Buttons */}
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Link to="/history" className="w-full sm:w-auto">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto py-2"
                 >
                   <ClockIcon className="w-4 h-4 mr-2" />
@@ -254,7 +381,7 @@ export function ParametersPage() {
                 </Button>
               </Link>
               <Link to="/assessment" className="w-full sm:w-auto">
-                <Button 
+                <Button
                   className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg w-full sm:w-auto py-2"
                 >
                   <Activity className="w-4 h-4 mr-2" />
@@ -271,7 +398,7 @@ export function ParametersPage() {
       {/* ============================================ */}
       <main className="flex-1 p-4 py-8">
         <div className="max-w-3xl mx-auto">
-          
+
           {/* Tombol Kembali */}
           <Button
             variant="ghost"
@@ -292,7 +419,7 @@ export function ParametersPage() {
                   <CardTitle className="text-2xl">Parameter Klinis</CardTitle>
                   <CardDescription className="text-base flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    Pasien: {patientName} 
+                    Pasien: {patientName}
                     {patientGender && (
                       <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full ml-2 capitalize">
                         {patientGender}
@@ -319,12 +446,12 @@ export function ParametersPage() {
                       min="0"
                       step="1"
                       placeholder={isMalePatient ? "Tidak berlaku" : "Contoh: 2"}
-                      disabled={isMalePatient} 
+                      disabled={isMalePatient}
                       value={parameters.pregnancies ?? ""}
                       onChange={(e) => handleChange("pregnancies", e.target.value)}
                       className={`h-12 border-2 rounded-xl transition-all
-                        ${isMalePatient 
-                          ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed' 
+                        ${isMalePatient
+                          ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
                           : 'border-red-200 focus:border-red-500'
                         }`}
                     />
@@ -475,7 +602,7 @@ export function ParametersPage() {
                   ) : (
                     <>
                       <Activity className="w-5 h-5 mr-2" />
-                      Lanjutkan ke Hasil Prediksi
+                      Prediksi Risiko Diabetes
                     </>
                   )}
                 </Button>
@@ -484,22 +611,50 @@ export function ParametersPage() {
           </Card>
 
           {/* Progress Indicator */}
+          <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-sm text-red-700">
+              💡 <strong>Informasi:</strong> Untuk memperoleh hasil prediksi yang lebih
+              representatif, silakan isi minimal{" "}
+              <strong>3 dari 8 parameter klinis</strong>.
+            </p>
+          </div>
+
           <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-green-50 backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 border-green-300">
-              <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
-              <div className="text-sm font-semibold text-green-700">Data Pasien</div>
+            <div className="bg-green-50 p-4 rounded-xl text-center shadow-lg border-2 border-green-300">
+              <div className="flex justify-center mb-2">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+
+              <div className="text-sm font-semibold text-green-700">
+                Data Pasien
+              </div>
             </div>
-            <div className="bg-white/90 backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 border-red-300">
-              <div className="text-3xl font-bold text-red-600 mb-1">2</div>
-              <div className="text-sm font-medium text-gray-700">Parameter</div>
+
+            <div className="bg-white p-4 rounded-xl text-center shadow-lg border-2 border-red-300">
+              <div className="text-3xl font-bold text-red-600 mb-1">
+                {Object.values(parameters).filter((v) => v !== null).length}
+              </div>
+
+              <div className="text-sm font-medium text-gray-700">
+                Parameter Terisi
+              </div>
             </div>
-            <div className="bg-white/60 backdrop-blur-sm p-4 rounded-xl text-center shadow-md border border-gray-200">
-              <div className="text-3xl font-bold text-gray-400 mb-1">3</div>
-              <div className="text-sm text-gray-500">Hasil</div>
+
+            <div className="bg-white p-4 rounded-xl text-center shadow-md border border-gray-200">
+              <div className="text-3xl font-bold text-gray-400 mb-1">
+                3
+              </div>
+
+              <div className="text-sm text-gray-500">
+                Hasil
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+
+          {/* PENUTUP div max-w-3xl */}
+          </div>
+
+          </main>
 
       {/* ============================================ */}
       {/* 📌 FOOTER */}
@@ -519,7 +674,7 @@ export function ParametersPage() {
                 Platform digital terpercaya untuk skrining dan deteksi dini risiko diabetes mellitus.
               </p>
             </div>
-            
+
             {/* Quick Links */}
             <div>
               <h4 className="font-bold mb-2">Tautan Cepat</h4>
@@ -530,7 +685,7 @@ export function ParametersPage() {
                 <Link to="/education" className="block hover:text-white transition-colors">Edukasi</Link>
               </div>
             </div>
-            
+
             {/* Contact */}
             <div>
               <h4 className="font-bold mb-2">Kontak Kami</h4>
@@ -543,7 +698,7 @@ export function ParametersPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Copyright */}
           <div className="border-t border-red-700 pt-4 text-center">
             <p className="text-red-100 text-sm">
@@ -560,12 +715,14 @@ export function ParametersPage() {
       {showScrollTop && (
         <Button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-2xl z-50"
-          aria-label="Kembali ke atas"
+          className="fixed bottom-6 right-6 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg"
         >
           <ArrowUp className="w-5 h-5" />
         </Button>
       )}
+
     </div>
   );
 }
+
+export default ParametersPage;

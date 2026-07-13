@@ -6,7 +6,7 @@ import axios from 'axios';
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+   
 // ✅ SIMPAN DB INSTANCE DI VARIABLE GLOBAL
 let db;
 
