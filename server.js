@@ -175,7 +175,7 @@ app.post('/api/predict', async (req, res) => {
 
     console.log('📤 Sending RAW data to ML API:', mlPayload);
 
-    const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
+    const VITE_API_URL = 'https://dhitadhit-diacares-api.hf.space';
     
     const mlApiResponse = await axios.post(VERCEL_API_URL, mlPayload, {
       timeout: 15000
