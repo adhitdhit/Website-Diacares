@@ -185,9 +185,11 @@ export function ParametersPage() {
       };
 
       const response = await axios.post(
-        `${API_URL}/predict`,
-        payload
-      );
+  "https://dhitadhit-diacares-api.hf.space/call/predict_diabetes_api", 
+  {
+   
+  }
+);
 
       if (!response.data.success) {
         throw new Error(
