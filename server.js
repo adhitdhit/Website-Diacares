@@ -23,7 +23,7 @@ app.use(express.json());
 let db;
 
 // BACA MONGODB_URI DARI .env
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://horanghae212_db_user:dbUser@ac-hixwkfk-shard-00-00.zdovhtz.mongodb.net:27017,ac-hixwkfk-shard-00-01.zdovhtz.mongodb.net:27017,ac-hixwkfk-shard-00-02.zdovhtz.mongodb.net:27017/?ssl=true&replicaSet=atlas-qjfmt7-shard-0&authSource=admin&appName=Cluster0";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://horanghae212_db_user:dbUser@cluster0.zdovhtz.mongodb.net/?appName=Cluster0";
 
 // CONNECT 
 mongoose.connect(MONGODB_URI)
