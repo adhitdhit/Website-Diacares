@@ -3,25 +3,42 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import axios from 'axios';
 
+import dotenv from 'dotenv';
+
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://angler-dawdler-aside.ngrok-free.dev',  
+    'http://localhost:5173',                          
+    'http://127.0.0.1:5173',
+    '*'                                              
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
    
-// ✅ SIMPAN DB INSTANCE DI VARIABLE GLOBAL
+// SIMPAN DB 
 let db;
 
-const MONGO_URI = "mongodb://dbUser:admin@ac-xmhlfy4-shard-00-00.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-01.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-02.toqswqk.mongodb.net:27017/Database?ssl=true&replicaSet=atlas-4dejvt-shard-0&authSource=admin&appName=Cluster0";
+// BACA MONGODB_URI DARI .env
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://dbUser:admin@ac-xmhlfy4-shard-00-00.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-01.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-02.toqswqk.mongodb.net:27017/Database?ssl=true&replicaSet=atlas-4dejvt-shard-0&authSource=admin&appName=Cluster0";
 
-mongoose.connect(MONGO_URI)
-  .then((connection) => {
+// CONNECT 
+mongoose.connect(MONGODB_URI)
+  .then(() => {
     console.log('✅ Connected to MongoDB');
-    console.log('📂 Database: Database');
-    // ✅ SIMPAN DB INSTANCE
-    db = connection.connection.db;
+    
+    // ✅ ASSIGN DB INSTANCE
+    db = mongoose.connection.db;
+    
+    console.log('📂 Database Name:', db.databaseName);
     console.log('🗄️ Database instance ready');
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message);
+    console.error(' MONGODB_URI exists:', !!process.env.MONGODB_URI);
     process.exit(1);
   });
 
@@ -322,6 +339,52 @@ app.get('/api/history/:patientName', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// === ROUTE 8: CLEANUP DUPLICATES (Admin Only) ===
+app.post('/api/admin/cleanup-duplicates', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
+
+    const PredictionCollection = db.collection('Database_3');
+    
+    // Cari data dengan patientName + param sama, ambil yang terbaru
+    const pipeline = [
+      {
+        $group: {
+          _id: {
+            patientName: '$patientName',
+            Glucose: '$Glucose',
+            Age: '$Age',
+            BMI: '$BMI'
+          },
+          docs: { $push: { _id: '$_id', createdAt: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $match: { count: { $gt: 1 } } }
+    ];
+
+    const duplicates = await PredictionCollection.aggregate(pipeline).toArray();
+    let deleted = 0;
+
+    for (const dup of duplicates) {
+      // Urutkan by createdAt, hapus semua kecuali yang terbaru
+      dup.docs.sort((a, b) => b.createdAt - a.createdAt);
+      const toDelete = dup.docs.slice(1).map(d => d._id);
+      
+      if (toDelete.length > 0) {
+        const result = await PredictionCollection.deleteMany({ _id: { $in: toDelete } });
+        deleted += result.deletedCount;
+      }
+    }
+
+    res.json({ success: true, message: `Deleted ${deleted} duplicates`, found: duplicates.length });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 
 // Start server
 const PORT = process.env.PORT || 5000;

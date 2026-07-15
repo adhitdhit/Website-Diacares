@@ -76,7 +76,7 @@ export function ParametersPage() {
 
   const API_URL =
     import.meta.env.VITE_API_URL ||
-    "http://localhost:5000/api";
+    '/api';
 
   // Handle scroll for back-to-top button
   useEffect(() => {
@@ -225,9 +225,10 @@ export function ParametersPage() {
     setErrorMessage("");
 
     // Cegah double submit
-    if (hasSubmittedRef.current) {
-      return;
-    }
+     if (hasSubmittedRef.current || isSaving) {
+    console.log('⛔ BLOCKED: Duplicate submission prevented!');
+    return;
+  }
 
     // Hitung jumlah parameter yang telah diisi
     const totalParameters =

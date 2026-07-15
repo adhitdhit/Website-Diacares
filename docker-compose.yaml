@@ -1,0 +1,51 @@
+services:
+  mongodb:
+    image: mongo:6
+    container_name: diacares-db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: diacares
+    volumes:
+      - mongodb_data:/data/db
+
+  backend:
+    build: .
+    container_name: diacares-backend
+    restart: unless-stopped
+    command: node server.js
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://dbUser:admin@ac-xmhlfy4-shard-00-00.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-01.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-02.toqswqk.mongodb.net:27017/Database?ssl=true&replicaSet=atlas-4dejvt-shard-0&authSource=admin&appName=Cluster0
+      - CORS_ORIGIN=*
+    depends_on:
+      - mongodb
+
+  frontend:
+    image: nginx:alpine
+    container_name: diacares-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: diacares-tunnel
+    restart: unless-stopped
+    command: http frontend:80 --url https://angler-dawdler-aside.ngrok-free.dev
+    environment:
+      - NGROK_AUTHTOKEN=3GTKORImsWzNVMj7ZB1iKMx5plB_5hg9TQGcwxSBUjpFVGNH7
+    depends_on:
+      - frontend
+
+volumes:
+  mongodb_data:

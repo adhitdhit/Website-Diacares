@@ -39,7 +39,7 @@ interface MongoPrediction {
   createdAt: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 if (!API_URL) {
   console.error('⚠️ VITE_API_URL belum diset! Cek file .env atau .env.production');
