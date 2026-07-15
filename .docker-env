@@ -1,3 +1,3 @@
 # File: .docker-env
-MONGODB_URI=mongodb://dbUser:admin@ac-xmhlfy4-shard-00-00.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-01.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-02.toqswqk.mongodb.net:27017/Database?ssl=true&replicaSet=atlas-4dejvt-shard-0&authSource=admin&appName=Cluster0
+MONGODB_URI=mongodb://horanghae212_db_user:dbUser@ac-hixwkfk-shard-00-00.zdovhtz.mongodb.net:27017,ac-hixwkfk-shard-00-01.zdovhtz.mongodb.net:27017,ac-hixwkfk-shard-00-02.zdovhtz.mongodb.net:27017/?ssl=true&replicaSet=atlas-qjfmt7-shard-0&authSource=admin&appName=Cluster0
 VITE_API_URL=http://localhost:5000/api

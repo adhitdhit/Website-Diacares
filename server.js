@@ -23,7 +23,7 @@ app.use(express.json());
 let db;
 
 // BACA MONGODB_URI DARI .env
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://dbUser:admin@ac-xmhlfy4-shard-00-00.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-01.toqswqk.mongodb.net:27017,ac-xmhlfy4-shard-00-02.toqswqk.mongodb.net:27017/Database?ssl=true&replicaSet=atlas-4dejvt-shard-0&authSource=admin&appName=Cluster0";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://horanghae212_db_user:dbUser@ac-hixwkfk-shard-00-00.zdovhtz.mongodb.net:27017,ac-hixwkfk-shard-00-01.zdovhtz.mongodb.net:27017,ac-hixwkfk-shard-00-02.zdovhtz.mongodb.net:27017/?ssl=true&replicaSet=atlas-qjfmt7-shard-0&authSource=admin&appName=Cluster0";
 
 // CONNECT 
 mongoose.connect(MONGODB_URI)
@@ -175,7 +175,7 @@ app.post('/api/predict', async (req, res) => {
 
     console.log('📤 Sending RAW data to ML API:', mlPayload);
 
-    const VERCEL_API_URL = 'https://dhitadhit-api.hf.space/predict';
+    const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
     
     const mlApiResponse = await axios.post(VERCEL_API_URL, mlPayload, {
       timeout: 15000
@@ -188,7 +188,7 @@ app.post('/api/predict', async (req, res) => {
     const { prediction, probability, riskScore, riskLevel, recommendations } = mlApiResponse.data;
 
     // Simpan ke MongoDB
-    const PredictionCollection = db.collection('Database_3');
+    const PredictionCollection = db.collection('Dataset Hasil');
     
     const newPrediction = {
       patientName: patientName || 'Tanpa Nama',
@@ -216,7 +216,7 @@ app.post('/api/predict', async (req, res) => {
     };
 
     const saved = await PredictionCollection.insertOne(newPrediction);
-    console.log(`✅ [${transactionId}] Saved to Database_3:`, saved.insertedId);
+    console.log(`✅ [${transactionId}] Saved to Daset Hasil:`, saved.insertedId);
 
     res.json({
       success: true,
@@ -278,7 +278,7 @@ app.get('/api/history', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
 
-    const PredictionCollection = db.collection('Database_3');
+    const PredictionCollection = db.collection('Dataset Hasil');
     
     const history = await PredictionCollection.find({})
       .sort({ createdAt: -1 })
@@ -312,7 +312,7 @@ app.get('/api/history/:patientName', async (req, res) => {
     }
 
     const { patientName } = req.params;
-    const PredictionCollection = db.collection('Database_3');
+    const PredictionCollection = db.collection('Dataset Hasil');
     
     const history = await PredictionCollection.find({
       patientName: { $regex: patientName, $options: 'i' }
@@ -345,7 +345,7 @@ app.post('/api/admin/cleanup-duplicates', async (req, res) => {
   try {
     if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
 
-    const PredictionCollection = db.collection('Database_3');
+    const PredictionCollection = db.collection('Dataset Hasil');
     
     // Cari data dengan patientName + param sama, ambil yang terbaru
     const pipeline = [
