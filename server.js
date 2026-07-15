@@ -77,7 +77,7 @@ app.get('/api/data', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Database 4');
+    const collection = db.collection('Dataset Hasil');
     const query = req.query.split ? { Split: req.query.split } : {};
     const data = await collection.find(query).toArray();
     
@@ -95,7 +95,7 @@ app.get('/api/feature-means', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Database 4');
+    const collection = db.collection('Dataset Hasil');
     
     const stats = await collection.aggregate([
       {
@@ -250,7 +250,7 @@ app.get('/api/prediction/:id', async (req, res) => {
     }
 
     const { id } = req.params;
-    const collection = db.collection('Database_3');
+    const collection = db.collection('Dataset Normalisasi');
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, error: 'Invalid ID format' });
