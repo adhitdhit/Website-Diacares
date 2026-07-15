@@ -160,6 +160,9 @@ export function ParametersPage() {
   // ==========================================
   // 📌 SIMPAN DATA KE MONGODB
   // ==========================================
+  // ==========================================
+  // 📌 SIMPAN DATA KE MONGODB (SESUAI FORMAT GRADIO API)
+  // ==========================================
   const saveToMongoDB = async (
     params: DiabetesParameters,
     transactionId: string
@@ -169,43 +172,45 @@ export function ParametersPage() {
     try {
       setIsSaving(true);
 
+      // 1. Ubah Payload menjadi format Array sesuai ekspektasi Gradio API
       const payload = {
-        Pregnancies: isMalePatient ? 0 : params.pregnancies,
-        Glucose: params.glucose,
-        BloodPressure: params.bloodPressure,
-        SkinThickness: params.skinThickness,
-        Insulin: params.insulin,
-        BMI: params.bmi,
-        DiabetesPedigreeFunction: params.diabetesPedigreeFunction,
-        Age: params.age,
-        patientName,
-        patientGender: patientGender.toLowerCase(),
-        source: "web_app",
-        transactionId,
+        data: [
+          isMalePatient ? 0 : Number(params.pregnancies || 0),
+          Number(params.glucose || 120),
+          Number(params.bloodPressure || 70),
+          Number(params.skinThickness || 20),
+          Number(params.insulin || 80),
+          Number(params.bmi || 30),
+          Number(params.diabetesPedigreeFunction || 0.5),
+          Number(params.age || 30),
+          patientName || "Anonim"
+        ]
       };
 
+      // 2. Tembak ke endpoint resmi Gradio Space kamu
+      // Pastikan VITE_API_URL bernilai: https://dhitadhit-diacares-api.hf.space
       const response = await axios.post(
-        `${API_URL}/predict`,
+        `${API_URL}/call/predict_diabetes_api`,
         payload
       );
 
-      if (!response.data.success) {
-        throw new Error(
-          response.data.error || "Terjadi kesalahan."
-        );
+      // 3. Gradio mengembalikan status 200 dengan event_id jika berhasil masuk antrean
+      if (response.status !== 200 || !response.data || !response.data.event_id) {
+        throw new Error("Gagal memproses prediksi di server.");
       }
 
       setSaveStatus("success");
-      return response.data.savedId;
+      
+      // Kembalikan ID transaksi unik buatan kita sebagai pengganti savedId lama
+      return transactionId; 
     } catch (error: any) {
       console.error(error);
 
       setSaveStatus("error");
 
-      setErrorMessage(
-        error.response?.data?.error ??
-        "Gagal menyimpan data."
-      );
+      // Pastikan error yang diset berupa String agar tidak memicu crash React #31
+      const errMsg = error.response?.data?.error || error.message || "Gagal menyimpan data.";
+      setErrorMessage(errMsg);
 
       return false;
     } finally {
@@ -213,7 +218,6 @@ export function ParametersPage() {
       setIsSaving(false);
     }
   };
-
   // ==========================================
   // 📌 SUBMIT
   // ==========================================
