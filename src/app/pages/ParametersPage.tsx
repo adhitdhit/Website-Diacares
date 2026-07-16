@@ -158,66 +158,72 @@ export function ParametersPage() {
   };
   // Fungsi simpan data ke MongoDB
   // ==========================================
-  // 📌 SIMPAN DATA KE MONGODB
-  // ==========================================
-  // ==========================================
-  // 📌 SIMPAN DATA KE MONGODB (SESUAI FORMAT GRADIO API)
-  // ==========================================
-  const saveToMongoDB = async (
-    params: DiabetesParameters,
-    transactionId: string
-  ) => {
-    if (isSaving) return false;
+ // ==========================================
+// 📌 SIMPAN DATA KE MONGODB (REST API FORMAT)
+// ==========================================
+const saveToMongoDB = async (
+  params: DiabetesParameters,
+  transactionId: string
+) => {
+  if (isSaving) return false;
 
-    try {
-      setIsSaving(true);
+  try {
+    setIsSaving(true);
 
-      // 1. Ubah Payload menjadi format Array sesuai ekspektasi Gradio API
-      const payload = {
-        data: [
-          isMalePatient ? 0 : Number(params.pregnancies || 0),
-          Number(params.glucose || 120),
-          Number(params.bloodPressure || 70),
-          Number(params.skinThickness || 20),
-          Number(params.insulin || 80),
-          Number(params.bmi || 30),
-          Number(params.diabetesPedigreeFunction || 0.5),
-          Number(params.age || 30),
-          patientName || "Anonim"
-        ]
-      };
+    // ✅ Format payload REST API biasa (JSON object, BUKAN array Gradio!)
+    const payload = {
+      Pregnancies: isMalePatient ? 0 : (params.pregnancies ?? 0),
+      Glucose: params.glucose ?? 0,
+      BloodPressure: params.bloodPressure ?? 0,
+      SkinThickness: params.skinThickness ?? 0,
+      Insulin: params.insulin ?? 0,
+      BMI: params.bmi ?? 0,
+      DiabetesPedigreeFunction: params.diabetesPedigreeFunction ?? 0,
+      Age: params.age ?? 0,
+      patientName: patientName || "Anonim",
+      patientGender: patientGender || "-",
+      source: "web_app"
+    };
 
-      // 2. Tembak ke endpoint resmi Gradio Space kamu
-      // Pastikan VITE_API_URL bernilai: https://dhitadhit-diacares-api.hf.space
-      const response = await axios.post(
-        `${API_URL}/call/predict_diabetes_api`,
-        payload
-      );
+    console.log('📤 Sending to PythonAnywhere:', payload);
 
-      // 3. Gradio mengembalikan status 200 dengan event_id jika berhasil masuk antrean
-      if (response.status !== 200 || !response.data || !response.data.event_id) {
-        throw new Error("Gagal memproses prediksi di server.");
+    // ✅ Endpoint baru: /api/predict (sesuai server.js)
+    const response = await axios.post(
+      `${API_URL}/predict`,  // ← GANTI DARI /call/predict_diabetes_api
+      payload,
+      {
+        timeout: 30000,
+        headers: { 'Content-Type': 'application/json' }
       }
+    );
 
-      setSaveStatus("success");
-      
-      // Kembalikan ID transaksi unik buatan kita sebagai pengganti savedId lama
-      return transactionId; 
-    } catch (error: any) {
-      console.error(error);
+    console.log('✅ PythonAnywhere Response:', response.data);
 
-      setSaveStatus("error");
-
-      // Pastikan error yang diset berupa String agar tidak memicu crash React #31
-      const errMsg = error.response?.data?.error || error.message || "Gagal menyimpan data.";
-      setErrorMessage(errMsg);
-
-      return false;
-    } finally {
-      isProcessingRef.current = false;
-      setIsSaving(false);
+    // ✅ Parse response JSON biasa (bukan event_id Gradio!)
+    if (!response.data.success) {
+      throw new Error(response.data.error || "Gagal memproses prediksi");
     }
-  };
+
+    setSaveStatus("success");
+    
+    // Kembalikan savedId dari response
+    return response.data.savedId || transactionId; 
+
+  } catch (error: any) {
+    console.error('❌ Save error:', error);
+
+    setSaveStatus("error");
+
+    // Pastikan error yang diset berupa String agar tidak memicu crash React #31
+    const errMsg = error.response?.data?.error || error.message || "Gagal menyimpan data.";
+    setErrorMessage(errMsg);
+
+    return false;
+  } finally {
+    isProcessingRef.current = false;
+    setIsSaving(false);
+  }
+};
   // ==========================================
   // 📌 SUBMIT
   // ==========================================

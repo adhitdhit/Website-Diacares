@@ -112,14 +112,34 @@ app.post('/api/predict', async (req, res) => {
       message: 'Prediksi berhasil!'
     });
 
-  } catch (error) {
-    console.error('❌ Predict error:', error.response?.data || error.message);
-    res.status(500).json({ 
+ } catch (error) {
+  console.error('❌ Predict error:', error.response?.data || error.message);
+  
+  // Handle timeout khusus PythonAnywhere
+  if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+    return res.status(504).json({ 
       success: false, 
-      error: error.message,
-      details: error.response?.data 
+      error: 'API sedang memuat (cold start). Silakan coba lagi dalam 10 detik.',
+      details: 'PythonAnywhere free tier perlu waktu untuk "bangun"'
     });
   }
+  
+  // Handle error dari PythonAnywhere
+  if (error.response?.status === 500) {
+    return res.status(502).json({ 
+      success: false, 
+      error: 'Error di server prediksi',
+      details: error.response?.data?.error || 'Silakan coba lagi'
+    });
+  }
+  
+  // Error umum
+  res.status(500).json({ 
+    success: false, 
+    error: error.message,
+    details: error.response?.data || 'Unknown error'
+  });
+}
 });
 
 // === ROUTE 1: GET stats ===
