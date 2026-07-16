@@ -11,12 +11,11 @@ export default defineConfig({
       'angler-dawdler-aside.ngrok-free.dev',
       'localhost',
       '127.0.0.1',
-    
     ],
-    
+    // Proxy cuma buat dev, production pakai env variable
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', 
+        target: process.env.VITE_API_URL || 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       },
@@ -26,5 +25,10 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  // ✅ Tambahin ini buat pastikan build output benar
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
   },
 })
