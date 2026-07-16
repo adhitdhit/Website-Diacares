@@ -20,8 +20,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5000
-      - MONGODB_URI=mongodb+srv://horanghae212_db_user:dbUser@cluster0.zdovhtz.mongodb.net/?appName=Cluster0
-      - CORS_ORIGIN=*
+      - MONGODB_URI=mongodb+srv://horanghae212_db_user:dbUser@cluster0.zdovhtz.mongodb.net
     depends_on:
       - mongodb
 
