@@ -1,7 +1,7 @@
 @echo off
-echo 🔥 STARTING DIACARES SYSTEM...
-start cmd /k "cd server && python app.py"
-timeout /t 3
-start cmd /k "cd client && npm run dev"
-echo ✅ SYSTEM READY! Buka http://localhost:5173
+echo 🔥 Starting DiaCares Backend...
+start /min python app.py
+timeout /t 2
+echo ✅ Backend jalan di http://localhost:5000
+echo 🌐 Buka diacares.online untuk test
 pause

@@ -41,6 +41,7 @@ export interface DiabetesParameters {
   age: number | null;
 }
 
+
 export function ParametersPage() {
   const navigate = useNavigate();
 
@@ -73,8 +74,9 @@ export function ParametersPage() {
       age: null,
     });
 
-  // ✅ UPDATE API_URL SESUAI BACKEND LU
-  const API_URL = "http://localhost:5000";  // Ganti ke URL backend lu (PythonAnywhere/HF)
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000/api";
 
   // Handle scroll for back-to-top button
   useEffect(() => {
@@ -104,7 +106,7 @@ export function ParametersPage() {
     const savedGender = sessionStorage.getItem('patientGender');
 
     if (!savedName) {
-      console.warn('⚠️ No patientName found, redirecting to /assessment');
+      console.warn('️ No patientName found, redirecting to /assessment');
       navigate('/assessment', { replace: true });
       return;
     }
@@ -164,10 +166,11 @@ export function ParametersPage() {
   };
 
   // ==========================================
-  // 📌 SUBMIT PREDIKSI (REPLACE saveToMongoDB)
+  // 📌 SIMPAN DATA KE MONGODB
   // ==========================================
-  const submitPrediction = async (
-    params: DiabetesParameters
+  const saveToMongoDB = async (
+    params: DiabetesParameters,
+    transactionId: string
   ) => {
     if (isSaving) return false;
 
@@ -186,16 +189,13 @@ export function ParametersPage() {
         patientName,
         patientGender: patientGender.toLowerCase(),
         source: "web_app",
+        transactionId,
       };
 
-      console.log('📤 Sending prediction:', payload);
-
       const response = await axios.post(
-        `${API_URL}/api/predict`,
+        `${API_URL}/predict`,
         payload
       );
-
-      console.log('✅ Response:', response.data);
 
       if (!response.data.success) {
         throw new Error(
@@ -204,13 +204,9 @@ export function ParametersPage() {
       }
 
       setSaveStatus("success");
-      
-      // ✅ SIMPAN HASIL PREDIKSI KE SESSION STORAGE
-      sessionStorage.setItem("predictionResult", JSON.stringify(response.data));
-      
-      return true;
+      return response.data.savedId;
     } catch (error: any) {
-      console.error('❌ Error:', error);
+      console.error(error);
 
       setSaveStatus("error");
 
@@ -237,10 +233,10 @@ export function ParametersPage() {
     setErrorMessage("");
 
     // Cegah double submit
-    if (hasSubmittedRef.current || isSaving) {
-      console.log('⛔ BLOCKED: Duplicate submission prevented!');
-      return;
-    }
+     if (hasSubmittedRef.current || isSaving) {
+    console.log('⛔ BLOCKED: Duplicate submission prevented!');
+    return;
+  }
 
     // ✅ PAKAI filledParametersCount YANG SUDAH DIHITUNG useMemo
     // Minimal 3 parameter
@@ -308,20 +304,36 @@ export function ParametersPage() {
     }
 
     console.log(
-      ` ${filledParametersCount}/${totalParameters} parameter`
+      `📦 ${filledParametersCount}/${totalParameters} parameter`
+    );
+
+    const transactionId = `TXN-${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 9)}`;
+
+    sessionStorage.setItem(
+      "parameters",
+      JSON.stringify(parameters)
     );
 
     hasSubmittedRef.current = true;
 
-    // ✅ SUBMIT PREDIKSI (tanpa savedId)
-    const success = await submitPrediction(parameters);
+    const savedId =
+      await saveToMongoDB(
+        parameters,
+        transactionId
+      );
 
-    if (!success) {
+    if (!savedId) {
       hasSubmittedRef.current = false;
       return;
     }
 
-    // ✅ NAVIGATE KE HASIL
+    sessionStorage.setItem(
+      "predictionId",
+      savedId
+    );
+
     navigate("/results");
   };
 
@@ -337,7 +349,7 @@ export function ParametersPage() {
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex flex-col">
 
       {/* ============================================ */}
-      {/*  HEADER / NAVIGATION BAR */}
+      {/* 📌 HEADER / NAVIGATION BAR */}
       {/* ============================================ */}
       <nav className="bg-white shadow-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
@@ -574,7 +586,7 @@ export function ParametersPage() {
                 {saveStatus === 'success' && (
                   <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
                     <CheckCircle className="w-4 h-4" />
-                    Data tersimpan ke CSV
+                    Data tersimpan ke database
                   </div>
                 )}
 
@@ -586,7 +598,7 @@ export function ParametersPage() {
                   {isSaving ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Memproses...
+                      Menyimpan...
                     </>
                   ) : (
                     <>
