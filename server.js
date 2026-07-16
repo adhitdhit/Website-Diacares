@@ -29,7 +29,6 @@ mongoose.connect(MONGODB_URI)
   });
 
 // === ROUTE: POST /api/predict (FIXED) ===
-// === ROUTE: POST /api/predict ===
 app.post('/api/predict', async (req, res) => {
   try {
     if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
@@ -40,8 +39,9 @@ app.post('/api/predict', async (req, res) => {
       patientName, patientGender, source
     } = req.body;
 
-    // Format payload untuk Gradio API
-    const gradioPayload = {
+    const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
+    
+    const payload = {
       data: [
         Pregnancies ?? 0,
         Glucose ?? 0,
@@ -56,27 +56,27 @@ app.post('/api/predict', async (req, res) => {
       fn_index: 0
     };
 
-    const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
-    
-    const mlApiResponse = await axios.post(
-      `${HF_SPACE_URL}/api/predict`, 
-      gradioPayload, 
+    console.log('📤 Sending to HF Space...');
+
+    const response = await axios.post(
+      `${HF_SPACE_URL}/api/predict`,
+      payload,
       { 
-        timeout: 15000,
+        timeout: 30000,
         headers: { 'Content-Type': 'application/json' }
       }
     );
 
+    console.log(' HF Response:', JSON.stringify(response.data, null, 2));
 
-const resultData = mlApiResponse.data.data; 
-// Pastikan ada 5 values
-if (resultData.length >= 4) {
-  const prediction = resultData[0];
-  const probability = resultData[1];
-  const riskScore = resultData[2];
-  const riskLevel = resultData[3];
-  const recommendations = resultData[4] || ["Konsultasi dokter"];
-}
+    // ✅ PARSE ARRAY DARI GRADIO
+    const resultArray = response.data.data;
+    
+    const prediction = resultArray[0];
+    const probability = resultArray[1];
+    const riskScore = resultArray[2];
+    const riskLevel = resultArray[3];
+    const recommendations = resultArray[4] || ['Konsultasi dokter'];
 
     // Simpan ke MongoDB
     const saved = await db.collection('Dataset Hasil').insertOne({
@@ -91,9 +91,9 @@ if (resultData.length >= 4) {
       DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? null,
       Age: Age ?? null,
       Prediction_Result: prediction,
-      Risk_Score: riskScore,
-      Risk_Level: riskLevel,
-      Probability: probability,
+      Risk_Score: riskScore || 0,
+      Risk_Level: riskLevel || 'UNKNOWN',
+      Probability: probability || 0,
       Recommendations: recommendations,
       source: source || 'web_app',
       status: 'completed',
