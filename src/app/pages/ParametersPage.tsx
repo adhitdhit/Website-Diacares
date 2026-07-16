@@ -74,9 +74,7 @@ export function ParametersPage() {
       age: null,
     });
 
-  const API_URL =
-    import.meta.env.VITE_API_URL ||
-    '/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
   // Handle scroll for back-to-top button
   useEffect(() => {
@@ -187,12 +185,12 @@ const saveToMongoDB = async (
 
     console.log('📤 Sending to PythonAnywhere:', payload);
 
-    // ✅ Endpoint baru: /api/predict (sesuai server.js)
+   
     const response = await axios.post(
-      `${API_URL}/predict`,  // ← GANTI DARI /call/predict_diabetes_api
+      `${API_URL}/api/predict`, 
       payload,
       {
-        timeout: 30000,
+        timeout: 60000,
         headers: { 'Content-Type': 'application/json' }
       }
     );
