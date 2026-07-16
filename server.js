@@ -2,145 +2,29 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import axios from 'axios';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 const app = express();
-app.use(cors({ origin: ['*'], credentials: true }));
+app.use(cors());
 app.use(express.json());
-
+   
+// ✅ SIMPAN DB INSTANCE DI VARIABLE GLOBAL
 let db;
-const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  console.error('❌ MONGODB_URI not set!');
-  process.exit(1);
-}
+ 
+const MONGO_URI = process.env.MONGODB_URI;
 
-mongoose.connect(MONGODB_URI)
-  .then(() => {
+mongoose.connect(MONGO_URI)
+  .then((connection) => {
     console.log('✅ Connected to MongoDB');
-    db = mongoose.connection.db;
+    console.log('📂 Database: Database');
+    // ✅ SIMPAN DB INSTANCE
+    db = connection.connection.db;
+    console.log('🗄️ Database instance ready');
   })
   .catch(err => {
-    console.error('❌ MongoDB error:', err.message);
+    console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
-
-// === ROUTE: POST /api/predict (PYTHONANYWHERE - REST API) ===
-app.post('/api/predict', async (req, res) => {
-  try {
-    if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
-
-    const {
-      Glucose, Age, BloodPressure, BMI, Insulin,
-      Pregnancies, SkinThickness, DiabetesPedigreeFunction,
-      patientName, patientGender, source
-    } = req.body;
-
-    // ✅ URL PYTHONANYWHERE (GANTI DENGAN URL LU!)
-    const ML_API_URL = 'https://adhitdhit19.pythonanywhere.com';
-    
-    // ✅ Format payload REST API biasa (bukan Gradio!)
-    const payload = {
-      Pregnancies: Pregnancies ?? 0,
-      Glucose: Glucose ?? 0,
-      BloodPressure: BloodPressure ?? 0,
-      SkinThickness: SkinThickness ?? 0,
-      Insulin: Insulin ?? 0,
-      BMI: BMI ?? 0,
-      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? 0,
-      Age: Age ?? 0,
-      patientName: patientName || 'Anonim',
-      patientGender: patientGender || '-'
-    };
-
-    console.log('📤 Sending to PythonAnywhere:', payload);
-
-    const response = await axios.post(
-      `${ML_API_URL}/api/predict`,  // Endpoint Flask biasa
-      payload,
-      { 
-        timeout: 30000,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-
-    console.log('✅ PythonAnywhere Response:', JSON.stringify(response.data, null, 2));
-
-    // ✅ Parse response JSON biasa (bukan array Gradio!)
-    const { 
-      prediction, 
-      probability, 
-      riskScore, 
-      riskLevel, 
-      recommendations,
-      savedId 
-    } = response.data;
-
-    // Simpan ke MongoDB (backup lokal)
-    const saved = await db.collection('Dataset Hasil').insertOne({
-      patientName: patientName || 'Tanpa Nama',
-      patientGender: patientGender || 'Tidak Diketahui',
-      Pregnancies: Pregnancies ?? null,
-      Glucose: Glucose ?? null,
-      BloodPressure: BloodPressure ?? null,
-      SkinThickness: SkinThickness ?? null,
-      Insulin: Insulin ?? null,
-      BMI: BMI ?? null,
-      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? null,
-      Age: Age ?? null,
-      Prediction_Result: prediction,
-      Risk_Score: riskScore || 0,
-      Risk_Level: riskLevel || 'UNKNOWN',
-      Probability: probability || 0,
-      Recommendations: recommendations || [],
-      source: source || 'web_app',
-      status: 'completed',
-      createdAt: new Date()
-    });
-
-    res.json({
-      success: true,
-      savedId: saved.insertedId.toString(),
-      prediction,
-      probability,
-      riskScore,
-      riskLevel,
-      recommendations,
-      message: 'Prediksi berhasil!'
-    });
-
- } catch (error) {
-  console.error('❌ Predict error:', error.response?.data || error.message);
-  
-  // Handle timeout khusus PythonAnywhere
-  if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-    return res.status(504).json({ 
-      success: false, 
-      error: 'API sedang memuat (cold start). Silakan coba lagi dalam 10 detik.',
-      details: 'PythonAnywhere free tier perlu waktu untuk "bangun"'
-    });
-  }
-  
-  // Handle error dari PythonAnywhere
-  if (error.response?.status === 500) {
-    return res.status(502).json({ 
-      success: false, 
-      error: 'Error di server prediksi',
-      details: error.response?.data?.error || 'Silakan coba lagi'
-    });
-  }
-  
-  // Error umum
-  res.status(500).json({ 
-    success: false, 
-    error: error.message,
-    details: error.response?.data || 'Unknown error'
-  });
-}
-});
 
 // === ROUTE 1: GET stats ===
 app.get('/api/stats', async (req, res) => {
@@ -149,7 +33,7 @@ app.get('/api/stats', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Database 4');
+    const collection = db.collection('Dataset Hasil');
     
     const total = await collection.countDocuments({});
     const diabetes = await collection.countDocuments({ Outcome_Actual: 1 });
@@ -245,9 +129,106 @@ app.get('/api/feature-means', async (req, res) => {
   }
 });
 
-// === ROUTE 4: GET prediction by ID ===
+// === ROUTE 4: POST predict ===
+app.post('/api/predict', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ success: false, error: 'Database not connected' });
+    }
+
+    const transactionId = req.body.transactionId || `txn_${Date.now()}`;
+    console.log(`📥 [${transactionId}] Received predict request`);
+
+    const {
+      Glucose, Age, BloodPressure, BMI, Insulin,
+      Pregnancies, SkinThickness, DiabetesPedigreeFunction,
+      patientName, patientGender, source
+    } = req.body;
+
+    // Kirim data mentah (null tetap null)
+    const mlPayload = {
+      Pregnancies: Pregnancies ?? null,
+      Glucose: Glucose ?? null,
+      BloodPressure: BloodPressure ?? null,
+      SkinThickness: SkinThickness ?? null,
+      Insulin: Insulin ?? null,
+      BMI: BMI ?? null,
+      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? null,
+      Age: Age ?? null
+    };
+
+    console.log('📤 Sending RAW data to ML API:', mlPayload);
+
+    const VERCEL_API_URL = 'https://dhitadhit-api.hf.space/predict';
+    
+    const mlApiResponse = await axios.post(VERCEL_API_URL, mlPayload, {
+      timeout: 15000
+    });
+
+    if (!mlApiResponse.data.success) {
+      throw new Error('ML API prediction failed');
+    }
+
+    const { prediction, probability, riskScore, riskLevel, recommendations } = mlApiResponse.data;
+
+    // Simpan ke MongoDB
+    const PredictionCollection = db.collection('Dataset Normalisasi');
+    
+    const newPrediction = {
+      patientName: patientName || 'Tanpa Nama',
+      patientGender: patientGender || 'Tidak Diketahui',
+      
+      Pregnancies: Pregnancies ?? null,
+      Glucose: Glucose ?? null,
+      BloodPressure: BloodPressure ?? null,
+      SkinThickness: SkinThickness ?? null,
+      Insulin: Insulin ?? null,
+      BMI: BMI ?? null,
+      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? null,
+      Age: Age ?? null,
+      
+      Prediction_Result: prediction,
+      Risk_Score: riskScore,
+      Risk_Level: riskLevel,
+      Recommendations: recommendations,
+      Probability: probability,
+      
+      source: source || 'web_app',
+      status: 'completed',
+      transactionId: transactionId,
+      createdAt: new Date()
+    };
+
+    const saved = await PredictionCollection.insertOne(newPrediction);
+    console.log(`✅ [${transactionId}] Saved to Dataset Normalisasi:`, saved.insertedId);
+
+    res.json({
+      success: true,
+      savedId: saved.insertedId.toString(),
+      transactionId: transactionId,
+      prediction,
+      probability,
+      riskScore,
+      riskLevel,
+      recommendations,
+      message: 'Prediksi berhasil!'
+    });
+
+  } catch (error) {
+    console.error('❌ Error POST /api/predict:', error.message);
+    
+    if (error.code === 'ECONNABORTED') {
+      return res.status(504).json({ success: false, error: 'ML API timeout.' });
+    }
+    
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// === ROUTE 5: GET prediction by ID ===
 app.get('/api/prediction/:id', async (req, res) => {
   try {
+    // ✅ CEK DB CONNECTION
     if (!db) {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
@@ -274,14 +255,14 @@ app.get('/api/prediction/:id', async (req, res) => {
   }
 });
 
-// === ROUTE 5: GET ALL HISTORY ===
+// === ROUTE 6: GET ALL HISTORY ===
 app.get('/api/history', async (req, res) => {
   try {
     if (!db) {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
 
-    const PredictionCollection = db.collection('Dataset Hasil');
+    const PredictionCollection = db.collection('Dataset Normalisasi');
     
     const history = await PredictionCollection.find({})
       .sort({ createdAt: -1 })
@@ -307,7 +288,7 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// === ROUTE 6: GET HISTORY BY PATIENT NAME ===
+// === ROUTE 7: GET HISTORY BY PATIENT NAME ===
 app.get('/api/history/:patientName', async (req, res) => {
   try {
     if (!db) {
@@ -315,7 +296,7 @@ app.get('/api/history/:patientName', async (req, res) => {
     }
 
     const { patientName } = req.params;
-    const PredictionCollection = db.collection('Dataset Hasil');
+    const PredictionCollection = db.collection('Dataset Normalisasi');
     
     const history = await PredictionCollection.find({
       patientName: { $regex: patientName, $options: 'i' }
@@ -339,49 +320,6 @@ app.get('/api/history/:patientName', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Error fetching patient history:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// === ROUTE 7: CLEANUP DUPLICATES (Admin Only) ===
-app.post('/api/admin/cleanup-duplicates', async (req, res) => {
-  try {
-    if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
-
-    const PredictionCollection = db.collection('Dataset Hasil');
-    
-    const pipeline = [
-      {
-        $group: {
-          _id: {
-            patientName: '$patientName',
-            Glucose: '$Glucose',
-            Age: '$Age',
-            BMI: '$BMI'
-          },
-          docs: { $push: { _id: '$_id', createdAt: '$createdAt' } },
-          count: { $sum: 1 }
-        }
-      },
-      { $match: { count: { $gt: 1 } } }
-    ];
-
-    const duplicates = await PredictionCollection.aggregate(pipeline).toArray();
-    let deleted = 0;
-
-    for (const dup of duplicates) {
-      dup.docs.sort((a, b) => b.createdAt - a.createdAt);
-      const toDelete = dup.docs.slice(1).map(d => d._id);
-      
-      if (toDelete.length > 0) {
-        const result = await PredictionCollection.deleteMany({ _id: { $in: toDelete } });
-        deleted += result.deletedCount;
-      }
-    }
-
-    res.json({ success: true, message: `Deleted ${deleted} duplicates`, found: duplicates.length });
-
-  } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });

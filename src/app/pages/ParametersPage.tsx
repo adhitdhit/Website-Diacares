@@ -74,7 +74,9 @@ export function ParametersPage() {
       age: null,
     });
 
-const API_URL = 'https://adhitdhit19.pythonanywhere.com';
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000/api";
 
   // Handle scroll for back-to-top button
   useEffect(() => {
@@ -156,73 +158,62 @@ const API_URL = 'https://adhitdhit19.pythonanywhere.com';
   };
   // Fungsi simpan data ke MongoDB
   // ==========================================
- // ==========================================
-// 📌 SIMPAN DATA KE MONGODB (REST API FORMAT)
-// ==========================================
-const saveToMongoDB = async (
-  params: DiabetesParameters,
-  transactionId: string
-) => {
-  if (isSaving) return false;
+  // 📌 SIMPAN DATA KE MONGODB
+  // ==========================================
+  const saveToMongoDB = async (
+    params: DiabetesParameters,
+    transactionId: string
+  ) => {
+    if (isSaving) return false;
 
-  try {
-    setIsSaving(true);
+    try {
+      setIsSaving(true);
 
-    // ✅ Format payload REST API biasa (JSON object, BUKAN array Gradio!)
-    const payload = {
-      Pregnancies: isMalePatient ? 0 : (params.pregnancies ?? 0),
-      Glucose: params.glucose ?? 0,
-      BloodPressure: params.bloodPressure ?? 0,
-      SkinThickness: params.skinThickness ?? 0,
-      Insulin: params.insulin ?? 0,
-      BMI: params.bmi ?? 0,
-      DiabetesPedigreeFunction: params.diabetesPedigreeFunction ?? 0,
-      Age: params.age ?? 0,
-      patientName: patientName || "Anonim",
-      patientGender: patientGender || "-",
-      source: "web_app"
-    };
+      const payload = {
+        Pregnancies: isMalePatient ? 0 : params.pregnancies,
+        Glucose: params.glucose,
+        BloodPressure: params.bloodPressure,
+        SkinThickness: params.skinThickness,
+        Insulin: params.insulin,
+        BMI: params.bmi,
+        DiabetesPedigreeFunction: params.diabetesPedigreeFunction,
+        Age: params.age,
+        patientName,
+        patientGender: patientGender.toLowerCase(),
+        source: "web_app",
+        transactionId,
+      };
 
-    console.log('📤 Sending to PythonAnywhere:', payload);
+      const response = await axios.post(
+        `${API_URL}/predict`,
+        payload
+      );
 
-   
- 
-const response = await axios.post(
-  'https://adhitdhit19.pythonanywhere.com/api/predict',
-  payload,
-  {
-    timeout: 60000,  // 60 detik (handle cold start)
-    headers: { 'Content-Type': 'application/json' }
-  }
-);
+      if (!response.data.success) {
+        throw new Error(
+          response.data.error || "Terjadi kesalahan."
+        );
+      }
 
-    console.log('✅ PythonAnywhere Response:', response.data);
+      setSaveStatus("success");
+      return response.data.savedId;
+    } catch (error: any) {
+      console.error(error);
 
-    // ✅ Parse response JSON biasa (bukan event_id Gradio!)
-    if (!response.data.success) {
-      throw new Error(response.data.error || "Gagal memproses prediksi");
+      setSaveStatus("error");
+
+      setErrorMessage(
+        error.response?.data?.error ??
+        "Gagal menyimpan data."
+      );
+
+      return false;
+    } finally {
+      isProcessingRef.current = false;
+      setIsSaving(false);
     }
+  };
 
-    setSaveStatus("success");
-    
-    // Kembalikan savedId dari response
-    return response.data.savedId || transactionId; 
-
-  } catch (error: any) {
-    console.error('❌ Save error:', error);
-
-    setSaveStatus("error");
-
-    // Pastikan error yang diset berupa String agar tidak memicu crash React #31
-    const errMsg = error.response?.data?.error || error.message || "Gagal menyimpan data.";
-    setErrorMessage(errMsg);
-
-    return false;
-  } finally {
-    isProcessingRef.current = false;
-    setIsSaving(false);
-  }
-};
   // ==========================================
   // 📌 SUBMIT
   // ==========================================

@@ -39,7 +39,7 @@ interface MongoPrediction {
   createdAt: string;
 }
 
-const API_URL = 'https://adhitdhit19.pythonanywhere.com';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 if (!API_URL) {
   console.error('⚠️ VITE_API_URL belum diset! Cek file .env atau .env.production');
@@ -147,35 +147,36 @@ export function ResultsPage() {
 
   // ✅ Fungsi hanya untuk CEK STATUS (Read-Only)
   const checkPredictionStatus = async (id: string) => {
-  try {
-    setIsChecking(true);
-    console.log('🔍 Checking prediction:', id);
-    
-    // ✅ PASTIIN URL-NYA LENGKAP
-    const response = await axios.get(
-      `https://adhitdhit19.pythonanywhere.com/api/prediction/${id}`,  // ← Full URL
-      { timeout: 30000 }
-    );
-    
-    if (response.data.success) {
-      const data: MongoPrediction = response.data.data;
-      console.log('📥 Received:', data);
-      setPrediction(data);
+    try {
+      setIsChecking(true);
+      console.log('🔍 Checking prediction status:', id);
       
-      if (data.status === 'completed' && data.Risk_Score !== null) {
-        console.log('✅ Prediction completed');
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
+      const response = await axios.get(`${API_URL}/prediction/${id}`);
+      
+      if (response.data.success) {
+        const data: MongoPrediction = response.data.data;
+        console.log('📥 Received prediction:', data);
+        setPrediction(data);
+        
+        if (data.status === 'completed' && data.Risk_Score !== null) {
+          console.log('✅ Prediction completed');
+          
+          // Stop polling kalau sudah selesai
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            console.log('⏹️ Polling stopped - prediction completed');
+          }
+        } else {
+          console.log('⏳ Still pending, status:', data.status);
         }
       }
+    } catch (error) {
+      console.warn('⚠️ Gagal cek status:', error);
+    } finally {
+      setIsChecking(false);
     }
-  } catch (error) {
-    console.warn('⚠️ Gagal cek status:', error);
-  } finally {
-    setIsChecking(false);
-  }
-};
+  };
 
   // AUTO-POLLING: Cek otomatis setiap 3 detik
   useEffect(() => {
