@@ -1,0 +1,15 @@
+{
+  "features": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "target": "Outcome",
+  "accuracy": 0.8442,
+  "created_at": "2026-07-15T16:09:16.860285"
+}

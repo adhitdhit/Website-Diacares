@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ignore model files
+*.pkl
+*.joblib
+*.bin
+
+# Model (opsional, kalau mau upload)
+# diabetes_model.pkl
