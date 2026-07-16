@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -92,13 +92,21 @@ export function ParametersPage() {
       top: 0,
       behavior: "smooth",
     });
+
+  // ✅ HITUNG PARAMETER TERISI DENGAN useMemo
+  const filledParametersCount = useMemo(() => {
+    return Object.values(parameters).filter((value) => value !== null).length;
+  }, [parameters]);
+
+  const totalParameters = Object.keys(parameters).length;
+
   // Load data pasien dari sessionStorage
   useEffect(() => {
     const savedName = sessionStorage.getItem('patientName');
     const savedGender = sessionStorage.getItem('patientGender');
 
     if (!savedName) {
-      console.warn('⚠️ No patientName found, redirecting to /assessment');
+      console.warn('️ No patientName found, redirecting to /assessment');
       navigate('/assessment', { replace: true });
       return;
     }
@@ -156,7 +164,7 @@ export function ParametersPage() {
       }));
     }
   };
-  // Fungsi simpan data ke MongoDB
+
   // ==========================================
   // 📌 SIMPAN DATA KE MONGODB
   // ==========================================
@@ -230,17 +238,9 @@ export function ParametersPage() {
     return;
   }
 
-    // Hitung jumlah parameter yang telah diisi
-    const totalParameters =
-      Object.keys(parameters).length;
-
-    const filledParameters =
-      Object.values(parameters).filter(
-        (value) => value !== null
-      ).length;
-
+    // ✅ PAKAI filledParametersCount YANG SUDAH DIHITUNG useMemo
     // Minimal 3 parameter
-    if (filledParameters < 3) {
+    if (filledParametersCount < 3) {
       await Swal.fire({
         icon: "warning",
 
@@ -268,7 +268,7 @@ export function ParametersPage() {
               font-weight:bold;
               color:#DC2626;
             ">
-              ${filledParameters}/${totalParameters}
+              ${filledParametersCount}/${totalParameters}
             </div>
 
             <div style="
@@ -304,7 +304,7 @@ export function ParametersPage() {
     }
 
     console.log(
-      `📦 ${filledParameters}/${totalParameters} parameter`
+      `📦 ${filledParametersCount}/${totalParameters} parameter`
     );
 
     const transactionId = `TXN-${Date.now()}-${Math.random()
@@ -616,7 +616,7 @@ export function ParametersPage() {
             <p className="text-sm text-red-700">
               💡 <strong>Informasi:</strong> Untuk memperoleh hasil prediksi yang lebih
               representatif, silakan isi minimal{" "}
-              <strong>3 dari 8 parameter klinis</strong>.
+              <strong>3 dari {totalParameters} parameter klinis</strong>.
             </p>
           </div>
 
@@ -633,7 +633,7 @@ export function ParametersPage() {
 
             <div className="bg-white p-4 rounded-xl text-center shadow-lg border-2 border-red-300">
               <div className="text-3xl font-bold text-red-600 mb-1">
-                {Object.values(parameters).filter((v) => v !== null).length}
+                {filledParametersCount}
               </div>
 
               <div className="text-sm font-medium text-gray-700">
@@ -695,7 +695,7 @@ export function ParametersPage() {
                   <Phone className="w-4 h-4" />
                   <span>info@diacares.id</span>
                 </div>
-                <div>📍 Bandung, Indonesia</div>
+                <div> Bandung, Indonesia</div>
               </div>
             </div>
           </div>
