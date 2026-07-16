@@ -21,7 +21,7 @@ interface HistoryData {
   createdAt: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export function HomePage() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
