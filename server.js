@@ -67,14 +67,16 @@ app.post('/api/predict', async (req, res) => {
       }
     );
 
-    // Parse response Gradio (format array)
-  // Parse response Gradio (5 values)
-const resultData = mlApiResponse.data.data;
-const prediction = resultData[0];
-const probability = resultData[1];
-const riskScore = resultData[2];
-const riskLevel = resultData[3];
-const recommendations = resultData[4] || ['Konsultasi dokter'];
+
+const resultData = mlApiResponse.data.data; 
+// Pastikan ada 5 values
+if (resultData.length >= 4) {
+  const prediction = resultData[0];
+  const probability = resultData[1];
+  const riskScore = resultData[2];
+  const riskLevel = resultData[3];
+  const recommendations = resultData[4] || ["Konsultasi dokter"];
+}
 
     // Simpan ke MongoDB
     const saved = await db.collection('Dataset Hasil').insertOne({
