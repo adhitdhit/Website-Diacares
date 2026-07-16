@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
-import { AlertCircle, CheckCircle, Home, RefreshCw, Info, Printer, Loader2, Clock as ClockIcon, Activity, Phone, ArrowUp } from 'lucide-react';
+import { AlertCircle, CheckCircle, Home, RefreshCw, Info, Printer, Activity, Phone, ArrowUp } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 // ✅ TYPE: Allow null untuk field yang boleh kosong
@@ -19,31 +18,19 @@ interface DiabetesParameters {
   diabetesPedigreeFunction: number | null;
 }
 
-interface MongoPrediction {
-  _id: string;
-  patientName: string;
-  patientGender: string;
-  Pregnancies: number | null;
-  Glucose: number | null;
-  BloodPressure: number | null;
-  SkinThickness: number | null;
-  Insulin: number | null;
-  BMI: number | null;
-  DiabetesPedigreeFunction: number | null;
-  Age: number | null;
-  Prediction_Result: number | null;
-  Risk_Score: number | null;
-  Risk_Level: string | null;
-  Recommendations: string[] | null;
-  status: 'pending' | 'completed' | 'processing';
-  createdAt: string;
+// ✅ UPDATE INTERFACE SESUAI RESPONSE FLASK (tanpa _id & status)
+interface PredictionResult {
+  success: boolean;
+  prediction: number;
+  probability: number;
+  riskScore: number;
+  riskLevel: string;
+  recommendations: string[];
+  message: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-if (!API_URL) {
-  console.error('⚠️ VITE_API_URL belum diset! Cek file .env atau .env.production');
-}
+// ✅ HARD-CODE API_URL (sesuaikan dengan backend lu)
+const API_URL = "http://localhost:5000";
 
 // Import Logo
 // @ts-ignore
@@ -74,16 +61,11 @@ const formatValue = (value: number | null, unit: string = '', decimals: number =
 export function ResultsPage() {
   const navigate = useNavigate();
   
-  // REFS
-  const pollingIntervalRef = useRef<number | null>(null);
-  
   const [patientName, setPatientName] = useState<string>('');
   const [patientGender, setPatientGender] = useState<string>('');
   const [parameters, setParameters] = useState<DiabetesParameters | null>(null);
-  const [prediction, setPrediction] = useState<MongoPrediction | null>(null);
+  const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isChecking, setIsChecking] = useState<boolean>(false);
-  const [predictionId, setPredictionId] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Handle scroll for back-to-top button
@@ -99,14 +81,14 @@ export function ResultsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 1️⃣ Init: HANYA LOAD DATA & POLLING (TIDAK SUBMIT!)
+  // ✅ INIT: LOAD DATA DARI SESSION STORAGE (BUKAN API POLLING)
   useEffect(() => {
-    const initPage = async () => {
+    const initPage = () => {
       try {
         const name = sessionStorage.getItem('patientName');
         const gender = sessionStorage.getItem('patientGender');
         const paramsStr = sessionStorage.getItem('parameters');
-        const savedId = sessionStorage.getItem('predictionId');
+        const resultStr = sessionStorage.getItem('predictionResult');  // ✅ DARI ParametersPage
 
         // Validasi data pasien
         if (!name || !paramsStr) {
@@ -123,17 +105,18 @@ export function ResultsPage() {
         const parsedParams = JSON.parse(paramsStr) as DiabetesParameters;
         setParameters(parsedParams);
 
-        // ✅ LOGIKA KUNCI: Cek apakah ada predictionId
-        if (savedId) {
-          console.log('🔍 Found existing prediction ID:', savedId);
-          setPredictionId(savedId);
-          await checkPredictionStatus(savedId);
+        // ✅ LOAD HASIL PREDIKSI DARI SESSION STORAGE
+        if (resultStr) {
+          const result: PredictionResult = JSON.parse(resultStr);
+          console.log('📥 Loaded prediction result:', result);
+          setPrediction(result);
         } else {
-          // ❌ TIDAK ADA ID = Data belum disubmit = Redirect balik!
-          // JANGAN coba submit ulang dari sini!
-          console.warn('⚠️ No predictionId found. Redirecting to assessment...');
+          // ❌ Tidak ada hasil = redirect balik
+          console.warn('⚠️ No prediction result found. Redirecting...');
           navigate('/assessment', { replace: true });
+          return;
         }
+
       } catch (err) {
         console.error('❌ Init error:', err);
         navigate('/assessment', { replace: true });
@@ -145,70 +128,7 @@ export function ResultsPage() {
     initPage();
   }, [navigate]);
 
-  // ✅ Fungsi hanya untuk CEK STATUS (Read-Only)
-  const checkPredictionStatus = async (id: string) => {
-    try {
-      setIsChecking(true);
-      console.log('🔍 Checking prediction status:', id);
-      
-      const response = await axios.get(`${API_URL}/prediction/${id}`);
-      
-      if (response.data.success) {
-        const data: MongoPrediction = response.data.data;
-        console.log('📥 Received prediction:', data);
-        setPrediction(data);
-        
-        if (data.status === 'completed' && data.Risk_Score !== null) {
-          console.log('✅ Prediction completed');
-          
-          // Stop polling kalau sudah selesai
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-            pollingIntervalRef.current = null;
-            console.log('⏹️ Polling stopped - prediction completed');
-          }
-        } else {
-          console.log('⏳ Still pending, status:', data.status);
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ Gagal cek status:', error);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  // AUTO-POLLING: Cek otomatis setiap 3 detik
-  useEffect(() => {
-    if (predictionId && prediction?.status !== 'completed') {
-      console.log('🔄 Starting auto-polling for prediction:', predictionId);
-      
-      // Langsung cek sekali pertama kali
-      checkPredictionStatus(predictionId);
-      
-      // Set interval
-      pollingIntervalRef.current = setInterval(() => {
-        console.log('🔄 Auto-checking...');
-        checkPredictionStatus(predictionId);
-      }, 3000);
-      
-      // Cleanup
-      return () => {
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          console.log('🛑 Polling cleanup');
-        }
-      };
-    }
-  }, [predictionId, prediction?.status]);
-
-  const handleRefresh = () => {
-    if (predictionId) {
-      checkPredictionStatus(predictionId);
-    }
-  };
-
-  // ✅ PDF Export - FIXED VERSION (Handle null + RGB colors + no roundedRect)
+  // ✅ PDF Export
   const handlePrintPDF = () => {
     if (!prediction || !parameters) {
       alert('Data belum tersedia untuk dicetak');
@@ -224,16 +144,11 @@ export function ResultsPage() {
     // === HELPER: Konversi Tailwind color ke RGB ===
     const tailwindToRGB = (colorClass: string): [number, number, number] => {
       const colors: Record<string, [number, number, number]> = {
-        'red-600': [220, 38, 38],
-        'red-500': [239, 68, 68],
-        'orange-500': [234, 88, 12],
-        'orange-400': [251, 146, 60],
-        'yellow-500': [234, 179, 8],
-        'yellow-400': [250, 204, 21],
-        'green-600': [22, 163, 74],
-        'green-500': [34, 197, 94],
-        'gray-400': [156, 163, 175],
-        'gray-600': [75, 85, 99],
+        'red-600': [220, 38, 38], 'red-500': [239, 68, 68],
+        'orange-500': [234, 88, 12], 'orange-400': [251, 146, 60],
+        'yellow-500': [234, 179, 8], 'yellow-400': [250, 204, 21],
+        'green-600': [22, 163, 74], 'green-500': [34, 197, 94],
+        'gray-400': [156, 163, 175], 'gray-600': [75, 85, 99],
         'blue-600': [37, 99, 235],
       };
       const key = colorClass.replace('text-', '');
@@ -242,10 +157,7 @@ export function ResultsPage() {
 
     // === HELPER: Escape special chars untuk PDF ===
     const escapePDFText = (text: string): string => {
-      return text
-        .replace(/μ/g, 'u')
-        .replace(/²/g, '^2')
-        .replace(/[✅⚠️🔴🚨]/g, '');
+      return text.replace(/μ/g, 'u').replace(/²/g, '^2').replace(/[✅⚠️🔴🚨]/g, '');
     };
 
     // === HEADER ===
@@ -255,7 +167,6 @@ export function ResultsPage() {
     pdf.setFontSize(16);
     pdf.setFont('helvetica', 'bold');
     pdf.text('HASIL PREDIKSI DIABETES', pageWidth / 2, yPos + 10, { align: 'center' });
-
     yPos += 25;
 
     // === INFORMASI PASIEN ===
@@ -264,13 +175,11 @@ export function ResultsPage() {
     pdf.setTextColor(0, 0, 0);
     pdf.text('INFORMASI PASIEN', margin, yPos);
     yPos += 7;
-    
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
     pdf.text(`Nama: ${escapePDFText(patientName)}`, margin, yPos);
     pdf.text(`Jenis Kelamin: ${escapePDFText(patientGender)}`, margin + 60, yPos);
     yPos += 7;
-    
     const reportDate = new Date().toLocaleDateString('id-ID', {
       day: 'numeric', month: 'long', year: 'numeric'
     });
@@ -278,52 +187,39 @@ export function ResultsPage() {
     yPos += 10;
 
     // === SKOR RISIKO ===
-    if (prediction.status === 'completed' && prediction.Risk_Score !== null) {
-      let boxColor: [number, number, number];
-      if (prediction.Risk_Score >= 70) {
-        boxColor = [220, 38, 38];
-      } else if (prediction.Risk_Score >= 50) {
-        boxColor = [234, 88, 12];
-      } else if (prediction.Risk_Score >= 30) {
-        boxColor = [234, 179, 8];
-      } else {
-        boxColor = [22, 163, 74];
-      }
-      
-      // ✅ GANTI roundedRect → rect (karena roundedRect butuh plugin)
-      pdf.setFillColor(boxColor[0], boxColor[1], boxColor[2]);
-      pdf.rect(margin, yPos, pageWidth - margin * 2, 20, 'FD');
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(`SKOR RISIKO: ${prediction.Risk_Score}%`, pageWidth / 2, yPos + 8, { align: 'center' });
-      
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'normal');
-      const riskLevelClean = escapePDFText(prediction.Risk_Level || '');
-      pdf.text(`Kategori: ${riskLevelClean}`, pageWidth / 2, yPos + 16, { align: 'center' });
-      
-      yPos += 25;
-    }
+    const colors = getRiskColor(prediction.riskScore);
+    let boxColor: [number, number, number];
+    if (prediction.riskScore >= 70) boxColor = [220, 38, 38];
+    else if (prediction.riskScore >= 50) boxColor = [234, 88, 12];
+    else if (prediction.riskScore >= 30) boxColor = [234, 179, 8];
+    else boxColor = [22, 163, 74];
+    
+    pdf.setFillColor(boxColor[0], boxColor[1], boxColor[2]);
+    pdf.rect(margin, yPos, pageWidth - margin * 2, 20, 'FD');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`SKOR RISIKO: ${prediction.riskScore}%`, pageWidth / 2, yPos + 8, { align: 'center' });
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    const riskLevelClean = escapePDFText(prediction.riskLevel);
+    pdf.text(`Kategori: ${riskLevelClean}`, pageWidth / 2, yPos + 16, { align: 'center' });
+    yPos += 25;
 
     // === STATUS ===
     pdf.setDrawColor(220, 38, 38);
     pdf.setLineWidth(0.5);
     pdf.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 8;
-
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
     pdf.setTextColor(0, 0, 0);
     pdf.text('STATUS:', margin, yPos);
-
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
-    const statusText = prediction.Prediction_Result === 1 
+    const statusText = prediction.prediction === 1 
       ? 'RISIKO TINGGI DIABETES - Diperlukan evaluasi medis' 
       : 'RISIKO RENDAH DIABETES - Pertahankan pola hidup sehat';
-
     pdf.text(statusText, margin + 20, yPos);
     yPos += 12;
 
@@ -344,10 +240,9 @@ export function ResultsPage() {
     pdf.text('Nilai', margin + 70, yPos + 2);
     pdf.text('Satuan', margin + 110, yPos + 2);
     pdf.text('Status', margin + 145, yPos + 2);
-    
     yPos += 7;
 
-    // ✅ Data parameter dengan handle null
+    // Data parameter
     const clinicalData = [
       { label: 'Glukosa Darah (OGTT)', value: parameters.glucose, unit: 'mg/dL', range: [0, 140] as [number, number] },
       { label: 'Tekanan Darah (Diastolik)', value: parameters.bloodPressure, unit: 'mmHg', range: [60, 80] as [number, number] }, 
@@ -365,25 +260,18 @@ export function ResultsPage() {
         pdf.setLineWidth(0.1);
         pdf.line(margin, yPos - 1, pageWidth - margin, yPos - 1);
       }
-
       pdf.setFontSize(9);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(50, 50, 50);
       pdf.text(item.label, margin + 3, yPos + 3);
-      
-      // ✅ Format nilai (handle null)
       const displayValue = formatValue(item.value, item.unit, item.decimals);
       pdf.text(displayValue, margin + 70, yPos + 3);
-      
       pdf.text(item.unit, margin + 110, yPos + 3);
-      
-      // ✅ Status dengan RGB color yang benar
       const status = item.range ? getParamStatus(item.value, item.range[0], item.range[1]) : { color: 'text-gray-400', label: '-' };
       const [r, g, b] = tailwindToRGB(status.color);
       pdf.setTextColor(r, g, b);
       pdf.text(status.label, margin + 145, yPos + 3);
-      pdf.setTextColor(50, 50, 50); // Reset color
-      
+      pdf.setTextColor(50, 50, 50);
       yPos += 6;
     });
 
@@ -395,25 +283,19 @@ export function ResultsPage() {
     pdf.setTextColor(220, 38, 38);
     pdf.text('REKOMENDASI MEDIS', margin, yPos);
     yPos += 8;
-
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(50, 50, 50);
 
-    if (prediction.Recommendations && prediction.Recommendations.length > 0) {
-      prediction.Recommendations.forEach((rec, index) => {
+    if (prediction.recommendations && prediction.recommendations.length > 0) {
+      prediction.recommendations.forEach((rec, index) => {
         if (yPos + 10 > pageHeight - margin) {
           pdf.addPage();
           yPos = margin;
         }
-
-        const cleanRec = escapePDFText(rec)
-          .replace(/^\d+\.\s*/, '')
-          .trim();
-        
+        const cleanRec = escapePDFText(rec).replace(/^\d+\.\s*/, '').trim();
         const numberedRec = `${index + 1}. ${cleanRec}`;
         const lines = pdf.splitTextToSize(numberedRec, pageWidth - margin * 2 - 5);
-        
         pdf.text(lines, margin, yPos + 3);
         yPos += lines.length * 5 + 3;
       });
@@ -424,17 +306,14 @@ export function ResultsPage() {
     pdf.setLineWidth(0.3);
     pdf.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 8;
-
     pdf.setFontSize(8);
     pdf.setFont('helvetica', 'italic');
     pdf.setTextColor(120, 120, 120);
     pdf.text('Hasil ini untuk tujuan skrining. Konsultasikan dengan tenaga medis.', pageWidth / 2, yPos, { align: 'center' });
     yPos += 5;
     pdf.text('DiaCARES - Diabetes Care & Risk Evaluation System', pageWidth / 2, yPos, { align: 'center' });
-    
     pdf.setFontSize(7);
-    const idSuffix = prediction._id ? prediction._id.slice(-8).toUpperCase() : 'PENDING';
-    pdf.text(`ID: DIA-${idSuffix}`, margin, pageHeight - 10);
+    pdf.text(`ID: DIA-${Date.now().toString().slice(-8).toUpperCase()}`, margin, pageHeight - 10);
     pdf.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
 
     // Save PDF
@@ -444,7 +323,7 @@ export function ResultsPage() {
 
   const handleNewAssessment = () => {
     sessionStorage.removeItem('parameters');
-    sessionStorage.removeItem('predictionId');
+    sessionStorage.removeItem('predictionResult');
     navigate('/assessment');
   };
 
@@ -458,8 +337,8 @@ export function ResultsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
-          <p className="text-red-600 text-lg font-medium">Memuat data pasien...</p>
+          <div className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4 border-4 border-red-200 border-t-red-600 rounded-full"></div>
+          <p className="text-red-600 text-lg font-medium">Memuat hasil prediksi...</p>
         </div>
       </div>
     );
@@ -469,27 +348,22 @@ export function ResultsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
-          <p className="text-red-600 text-lg font-medium">Menyiapkan prediksi...</p>
+          <div className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4 border-4 border-red-200 border-t-red-600 rounded-full"></div>
+          <p className="text-red-600 text-lg font-medium">Menyiapkan hasil...</p>
         </div>
       </div>
     );
   }
 
-  const isCompleted = prediction.status === 'completed' && prediction.Risk_Score !== null;
-  const colors = isCompleted ? getRiskColor(prediction.Risk_Score!) : null;
+  const colors = getRiskColor(prediction.riskScore);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex flex-col">
       
-      {/* ============================================ */}
-      {/* 📌 HEADER / NAVIGATION BAR */}
-      {/* ============================================ */}
+      {/* HEADER / NAVIGATION BAR */}
       <nav className="bg-white shadow-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-3">
-            
-            {/* Logo & Title */}
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg flex-shrink-0">
                 <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
@@ -503,22 +377,15 @@ export function ResultsPage() {
                 </p>
               </div>
             </div>
-
-            {/* Navigation Buttons */}
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Link to="/history" className="w-full sm:w-auto">
-                <Button 
-                  variant="outline" 
-                  className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto py-2"
-                >
-                  <ClockIcon className="w-4 h-4 mr-2" />
+                <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto py-2">
+                  <RefreshCw className="w-4 h-4 mr-2" />
                   Riwayat
                 </Button>
               </Link>
               <Link to="/assessment" className="w-full sm:w-auto">
-                <Button 
-                  className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg w-full sm:w-auto py-2"
-                >
+                <Button className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg w-full sm:w-auto py-2">
                   <Activity className="w-4 h-4 mr-2" />
                   Asesmen Baru
                 </Button>
@@ -528,40 +395,22 @@ export function ResultsPage() {
         </div>
       </nav>
 
-      {/* ============================================ */}
-      {/* 📌 MAIN CONTENT - HASIL PREDIKSI */}
-      {/* ============================================ */}
+      {/* MAIN CONTENT - HASIL PREDIKSI */}
       <main className="flex-1 p-4 py-8">
         <div className="max-w-3xl mx-auto space-y-6">
           
           {/* Status Banner */}
-          <div className={`flex items-center gap-3 p-4 rounded-xl border-2 ${
-            isCompleted 
-              ? 'bg-green-50 border-green-300 text-green-700' 
-              : 'bg-blue-50 border-blue-300 text-blue-700'
-          }`}>
-            {isCompleted ? (
-              <CheckCircle className="w-5 h-5" />
-            ) : (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            )}
+          <div className="flex items-center gap-3 p-4 rounded-xl border-2 bg-green-50 border-green-300 text-green-700">
+            <CheckCircle className="w-5 h-5" />
             <div className="flex-1">
-              <p className="font-semibold">
-                {isCompleted ? '✅ Prediksi Selesai!' : '⏳ Sedang Diproses'}
-              </p>
+              <p className="font-semibold">✅ Prediksi Selesai!</p>
             </div>
-            {!isCompleted && (
-              <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isChecking}>
-                {isChecking ? 'Memeriksa...' : 'Cek Ulang'}
-              </Button>
-            )}
           </div>
 
           <Card className="border-2 border-red-200 shadow-2xl">
             <CardHeader className="bg-gradient-to-r from-red-600 via-red-500 to-orange-600 border-b border-red-300">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4 flex-1">
-                  {/* Gender Icon */}
                   <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg ${
                     patientGender.toLowerCase() === 'laki-laki' 
                       ? 'bg-gradient-to-br from-blue-500 to-indigo-500' 
@@ -579,19 +428,12 @@ export function ResultsPage() {
                     <CardDescription className="text-white/90 text-base">
                       Pasien: {patientName} • {patientGender}
                     </CardDescription>
-                    {prediction._id && (
-                      <p className="text-xs text-white/70 mt-1">
-                        ID: <code className="bg-white/20 px-1 rounded">{prediction._id.slice(-8)}</code>
-                      </p>
-                    )}
                   </div>
                 </div>
-                {isCompleted && prediction.Prediction_Result === 1 ? (
+                {prediction.prediction === 1 ? (
                   <AlertCircle className="w-12 h-12 text-white/90 animate-pulse" />
-                ) : isCompleted ? (
-                  <CheckCircle className="w-12 h-12 text-white/90" />
                 ) : (
-                  <Loader2 className="w-12 h-12 text-white/90 animate-spin" />
+                  <CheckCircle className="w-12 h-12 text-white/90" />
                 )}
               </div>
             </CardHeader>
@@ -599,29 +441,25 @@ export function ResultsPage() {
             <CardContent className="space-y-6 pt-6">
               
               {/* Risk Score */}
-              {isCompleted && colors && (
-                <>
-                  <div className={`text-center p-6 ${colors.light} rounded-2xl border-2 ${colors.border}`}>
-                    <p className="text-gray-700 mb-2 font-semibold">Diabetes Risk Score</p>
-                    <div className={`text-6xl font-bold mb-4 bg-gradient-to-r ${colors.bg} bg-clip-text text-transparent`}>
-                      {prediction.Risk_Score}%
-                    </div>
-                    <div className={`inline-block px-6 py-3 rounded-full text-base font-bold ${colors.badge} text-white`}>
-                      Risiko {prediction.Risk_Level}
-                    </div>
-                  </div>
+              <div className={`text-center p-6 ${colors.light} rounded-2xl border-2 ${colors.border}`}>
+                <p className="text-gray-700 mb-2 font-semibold">Diabetes Risk Score</p>
+                <div className={`text-6xl font-bold mb-4 bg-gradient-to-r ${colors.bg} bg-clip-text text-transparent`}>
+                  {prediction.riskScore}%
+                </div>
+                <div className={`inline-block px-6 py-3 rounded-full text-base font-bold ${colors.badge} text-white`}>
+                  Risiko {prediction.riskLevel}
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm font-medium">
-                      <span className="text-gray-700">Progress Risiko</span>
-                      <span className={colors.text}>{prediction.Risk_Score}/100</span>
-                    </div>
-                    <Progress value={prediction.Risk_Score!} className="h-4 bg-gray-200" />
-                  </div>
-                </>
-              )}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm font-medium">
+                  <span className="text-gray-700">Progress Risiko</span>
+                  <span className={colors.text}>{prediction.riskScore}/100</span>
+                </div>
+                <Progress value={prediction.riskScore} className="h-4 bg-gray-200" />
+              </div>
 
-              {/* ✅ Parameter yang Diinput - Handle null */}
+              {/* Parameter yang Diinput */}
               <div className="space-y-3">
                 <h4 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
                   <Info className="w-5 h-5 text-red-600" />
@@ -643,16 +481,13 @@ export function ResultsPage() {
                       insulin: [2, 20], age: [0, 35], pregnancies: [0, 3],
                       skinThickness: [10, 22], diabetesPedigreeFunction: [0, 0.5]
                     };
-                    const decimals: Record<string, number> = {
-                      bmi: 1, diabetesPedigreeFunction: 1
-                    };
+                    const decimals: Record<string, number> = { bmi: 1, diabetesPedigreeFunction: 1 };
 
                     const label = labels[key] || key;
                     const unit = units[key] || '';
                     const range = ranges[key];
                     const dec = decimals[key] || 0;
                     
-                    // ✅ Handle null untuk status dan display
                     const status = range ? getParamStatus(value, range[0], range[1]) : { color: 'text-gray-400', bg: 'bg-gray-50 border-gray-200', label: '-' };
                     const displayValue = formatValue(value, unit, dec);
 
@@ -660,9 +495,7 @@ export function ResultsPage() {
                       <div key={key} className={`p-3 rounded-lg border-2 ${status.bg}`}>
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-semibold text-gray-700">{label}</span>
-                          <span className={`text-xs font-bold ${status.color}`}>
-                            {displayValue}
-                          </span>
+                          <span className={`text-xs font-bold ${status.color}`}>{displayValue}</span>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
                           {value === null ? 'Tidak diisi' : range ? `Ideal: ${range[0]}-${range[1]} ${unit}`.trim() : '-'}
@@ -674,27 +507,18 @@ export function ResultsPage() {
               </div>
 
               {/* Rekomendasi */}
-              {isCompleted && prediction.Recommendations && prediction.Recommendations.length > 0 && (
+              {prediction.recommendations && prediction.recommendations.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
                     <AlertCircle className="w-5 h-5 text-red-600" />
                     Rekomendasi Medis:
                   </h4>
-                  {prediction.Recommendations.map((rec: string, i: number) => (
+                  {prediction.recommendations.map((rec: string, i: number) => (
                     <div key={i} className="flex items-start gap-3 p-4 bg-white-50 rounded-lg border border-white-100 hover:border-white-200 transition-all">
                       <span className="text-red-600 font-bold text-lg">{i + 1}.</span>
                       <p className="text-gray-700 text-sm flex-1">{rec}</p>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {/* Jika masih pending */}
-              {!isCompleted && (
-                <div className="text-center p-6 bg-blue-50 rounded-xl border-2 border-blue-200">
-                  <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-3" />
-                  <p className="text-blue-700 font-medium">Menunggu hasil dari Machine Learning...</p>
-                  <p className="text-sm text-blue-600 mt-1">Hasil akan muncul otomatis dalam beberapa detik</p>
                 </div>
               )}
 
@@ -745,29 +569,18 @@ export function ResultsPage() {
               <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
               <div className="text-sm font-semibold text-green-700">Parameter</div>
             </div>
-            <div className={`backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 ${
-              isCompleted ? 'bg-green-50 border-green-300' : 'bg-blue-50 border-blue-300'
-            }`}>
-              <div className="flex justify-center mb-1">
-                {isCompleted ? (
-                  <CheckCircle className="w-8 h-8 text-green-600" />
-                ) : (
-                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                )}
-              </div>
-              <div className={`text-sm font-semibold ${isCompleted ? 'text-green-700' : 'text-blue-700'}`}>Hasil</div>
+            <div className="bg-green-50 backdrop-blur-sm p-4 rounded-xl text-center shadow-lg border-2 border-green-300">
+              <div className="flex justify-center mb-1"><CheckCircle className="w-8 h-8 text-green-600" /></div>
+              <div className="text-sm font-semibold text-green-700">Hasil</div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* ============================================ */}
-      {/* 📌 FOOTER */}
-      {/* ============================================ */}
+      {/* FOOTER */}
       <footer className="bg-gradient-to-r from-red-900 via-red-800 to-orange-900 text-white py-8 px-4 mt-auto">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-3 gap-6 mb-6">
-            {/* Brand */}
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden">
@@ -779,8 +592,6 @@ export function ResultsPage() {
                 Platform digital terpercaya untuk skrining dan deteksi dini risiko diabetes mellitus.
               </p>
             </div>
-            
-            {/* Quick Links */}
             <div>
               <h4 className="font-bold mb-2">Tautan Cepat</h4>
               <div className="space-y-1 text-sm text-red-200">
@@ -790,8 +601,6 @@ export function ResultsPage() {
                 <Link to="/education" className="block hover:text-white transition-colors">Edukasi</Link>
               </div>
             </div>
-            
-            {/* Contact */}
             <div>
               <h4 className="font-bold mb-2">Kontak Kami</h4>
               <div className="space-y-1 text-sm text-red-200">
@@ -803,8 +612,6 @@ export function ResultsPage() {
               </div>
             </div>
           </div>
-          
-          {/* Copyright */}
           <div className="border-t border-red-700 pt-4 text-center">
             <p className="text-red-100 text-sm">
               © 2026 DiaCARES - Diabetes Care & Risk Evaluation System

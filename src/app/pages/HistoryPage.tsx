@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Link } from "react-router-dom";
@@ -6,8 +6,6 @@ import {
   Calendar, 
   User, 
   Activity, 
-  Loader2,
-  AlertCircle,
   FileText,
   Home,
   Shield,
@@ -17,85 +15,29 @@ import {
   Phone,
   Hospital,
   BookOpen,
-  ArrowLeft
+  ArrowLeft,
+  Download,
+  FolderOpen
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // @ts-ignore
 import logoImage from "@/assets/logoss.png";
 
-interface HistoryData {
-  _id: string;
-  patientName: string;
-  patientGender: string;
-  status: string;
-  createdAt: string;
-}
-
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// ✅ HARD-CODE API_URL SESUAI BACKEND FLASK
+const API_URL = "http://localhost:5000";
 
 export function HistoryPage() {
   const navigate = useNavigate();
-  const [history, setHistory] = useState<HistoryData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch(`${API_URL}/history`);
-        const result = await response.json();
-        
-        if (result.success) {
-          setHistory(result.data);
-        } else {
-          setError('Gagal memuat data riwayat');
-        }
-      } catch (err) {
-        console.error('Error fetching history:', err);
-        setError('Tidak dapat terhubung ke server');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHistory();
-  }, []);
-
-
-  // DATETIME
- const formatDate = (dateString: string) => {
-  if (!dateString) return '-';
-  
-  try {
-    const date = new Date(dateString);
-    
-    // ✅ Explicit WIB timezone (lebih aman daripada manual +7 jam)
-    return date.toLocaleString('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  } catch (error) {
-    console.error('Format date error:', error);
-    return '-';
-  }
-};
-
+  // Handle scroll for back-to-top button
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  useEffect(() => {
+  useState(() => {
     const handleScroll = () => {
       if (window.scrollY > 400) {
         setShowScrollTop(true);
@@ -105,38 +47,28 @@ export function HistoryPage() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  },);
 
-  // Loading State
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
-          <p className="text-red-600 text-lg font-medium">Memuat riwayat asesmen...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error State
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 p-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <Card className="border-red-300 shadow-lg">
-            <CardContent className="pt-6 text-center">
-              <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-              <p className="text-red-600 font-semibold mb-2">{error}</p>
-              <Button onClick={() => window.location.reload()} className="mt-4">
-                Coba Lagi
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  // ✅ FUNGSI DOWNLOAD CSV DARI FLASK
+  const handleDownloadCSV = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/download-csv`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'data_prediksi_diabetes.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } else {
+        alert('File CSV belum tersedia. Lakukan prediksi terlebih dahulu.');
+      }
+    } catch (error) {
+      console.error('Error downloading CSV:', error);
+      alert('Gagal mengunduh file CSV. Pastikan backend Flask berjalan.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50">
@@ -222,65 +154,53 @@ export function HistoryPage() {
       {/* WRAPPER DENGAN MARGIN DINAMIS */}
       <div className={`transition-all duration-300 ${isSidebarOpen ? 'ml-72' : 'ml-0'}`}>
         
-      {/* Navigation Bar */}
-<nav className="bg-white shadow-md sticky top-0 z-30">
-  <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-3">
-      
-      {/* Logo & Title - Responsive */}
-      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-        {/* Logo - Ukuran Responsive */}
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg flex-shrink-0">
-          <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
-        </div>
-        
-        {/* Title - Responsive */}
-        <div className="min-w-0">
-          <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent truncate">
-            DiaCARES
-          </h1>
-          <p className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">
-            Diabetes Care & Risk Evaluation
-          </p>
-        </div>
-      </div>
+        {/* Navigation Bar */}
+        <nav className="bg-white shadow-md sticky top-0 z-30">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-3">
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br rounded-xl flex items-center justify-center overflow-hidden shadow-lg flex-shrink-0">
+                  <img src={logoImage} alt="DiaCares Logo" className="w-full h-full object-contain scale-[2]" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent truncate">
+                    DiaCARES
+                  </h1>
+                  <p className="text-[10px] sm:text-xs text-gray-500 hidden sm:block">
+                    Diabetes Care & Risk Evaluation
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Link to="/history" className="w-full sm:w-auto">
+                  <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto py-2">
+                    <ClockIcon className="w-4 h-4 mr-2" />
+                    Riwayat
+                  </Button>
+                </Link>
+                <Link to="/assessment" className="w-full sm:w-auto">
+                  <Button className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg w-full sm:w-auto py-2">
+                    <Activity className="w-4 h-4 mr-2" />
+                    Asesmen Baru
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </nav>
 
-      {/* Buttons - Vertical di Mobile, Horizontal di Desktop */}
-      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-        <Link to="/history" className="w-full sm:w-auto">
-          <Button 
-            variant="outline" 
-            className="border-red-300 text-red-600 hover:bg-red-50 w-full sm:w-auto py-2"
-          >
-            <ClockIcon className="w-4 h-4 mr-2" />
-            Riwayat
-          </Button>
-        </Link>
-        <Link to="/assessment" className="w-full sm:w-auto">
-          <Button 
-            className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white shadow-lg w-full sm:w-auto py-2"
-          >
-            <Activity className="w-4 h-4 mr-2" />
-            Asesmen Baru
-          </Button>
-        </Link>
-      </div>
-    </div>
-  </div>
-</nav>
         {/* Main Content */}
         <div className="p-6">
-          {/* Header dengan Tombol Kembali */}
+          {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Riwayat Asesmen</h1>
                 <p className="text-gray-600 mt-1">
-                  Daftar pasien yang telah melakukan pemeriksaan
+                  Data hasil prediksi tersimpan secara lokal
                 </p>
               </div>
-              <div className="flex gap-2">
-                       <Button
+              <Button
                 onClick={() => navigate(-1)}
                 variant="outline"
                 className="border-red-300 text-red-600 hover:bg-red-50 flex-shrink-0"
@@ -288,88 +208,115 @@ export function HistoryPage() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Kembali
               </Button>
+            </div>
+          </div>
+
+          {/* ✅ INFO CARD: DATA CSV LOKAL */}
+          <Card className="border-2 border-green-300 bg-green-50 shadow-lg mb-6">
+            <CardContent className="pt-6 pb-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <FolderOpen className="w-6 h-6 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-green-900 text-lg mb-2">
+                    📁 Data Tersimpan di File CSV Lokal
+                  </h3>
+                  <p className="text-green-800 mb-4">
+                    Semua hasil prediksi otomatis tersimpan ke file 
+                    <code className="bg-green-100 px-2 py-1 rounded mx-1">data_prediksi_diabetes.csv</code> 
+                    di folder backend Flask.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <Button onClick={handleDownloadCSV} className="bg-green-600 hover:bg-green-700 text-white">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download File CSV
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="border-green-300 text-green-700 hover:bg-green-100"
+                      onClick={() => alert('Buka folder project backend Anda, cari file: data_prediksi_diabetes.csv')}
+                    >
+                      <FolderOpen className="w-4 h-4 mr-2" />
+                      Buka Folder CSV
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Empty State */}
-          {history.length === 0 ? (
-            <Card className="border-2 border-dashed border-gray-300">
-              <CardContent className="pt-12 pb-12 text-center">
-                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  Belum Ada Riwayat
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  Data asesmen akan muncul di sini setelah ada pasien yang melakukan pemeriksaan
-                </p>
-                <Button onClick={() => navigate('/assessment')}>
-                  Mulai Asesmen Pertama
+          {/* ✅ EMPTY STATE: TAMPILAN RIWAYAT */}
+          <Card className="border-2 border-dashed border-gray-300">
+            <CardContent className="pt-12 pb-12 text-center">
+              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                Riwayat Tersedia di Excel/CSV
+              </h3>
+              <p className="text-gray-500 mb-4 max-w-md mx-auto">
+                Untuk melihat riwayat lengkap dengan semua detail prediksi, 
+                silakan buka file CSV yang telah di-download menggunakan 
+                <strong className="text-gray-700"> Microsoft Excel</strong> atau 
+                <strong className="text-gray-700"> Google Sheets</strong>.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={handleDownloadCSV}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download CSV Sekarang
                 </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            /* List History */
-            <div className="space-y-3">
-              {history.map((item) => (
-                <Card 
-                  key={item._id} 
-                  className="border-2 border-gray-200 hover:border-red-300 transition-all shadow-sm hover:shadow-md"
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/assessment')}
+                  className="border-red-300 text-red-600 hover:bg-red-50"
                 >
-                  <CardContent className="p-4 sm:p-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      
-                       {/* Left: Patient Info */}
-    <div className="flex items-center gap-3 flex-1 min-w-0">
-      {/* Icon Gender - Ukuran tetap */}
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-        item.patientGender === 'perempuan' 
-          ? 'bg-pink-100' 
-          : 'bg-blue-100'
-      }`}>
-        <User className={`w-6 h-6 ${
-          item.patientGender === 'perempuan' 
-            ? 'text-pink-600' 
-            : 'text-blue-600'
-        }`} />
-      </div>
+                  <Activity className="w-4 h-4 mr-2" />
+                  Lakukan Asesmen Baru
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-                        {/* Patient Name & Date */}
-      <div className="flex-1 min-w-0">
-        <h3 className="font-bold text-gray-900 text-lg truncate">
-          {item.patientName}
-        </h3>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 mt-1">
-          <div className="flex items-center gap-1">
-            <Calendar className="w-4 h-4" />
-            <span>{formatDate(item.createdAt)}</span>
-          </div>
-          <span>•</span>
-          <span>{item.patientGender}</span>
-        </div>
-      </div>
-                      </div>
-
-                       {/* Right: Status Badge - FIX MOBILE */}
-    <div className="flex-shrink-0">
-      <div className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
-        item.status === 'completed'
-          ? 'bg-green-100 text-green-700 border-2 border-green-300'
-          : item.status === 'processing'
-          ? 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300'
-          : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
-      }`}>
-        {item.status === 'completed' ? '✅ Selesai' : 
-         item.status === 'processing' ? '⏳ Diproses' : 
-         '⏳ Pending'}
-      </div>
-    </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          {/* ✅ INFO: FORMAT DATA CSV */}
+          <Card className="mt-6 border-blue-200 bg-blue-50">
+            <CardContent className="pt-6">
+              <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Format Data dalam CSV:
+              </h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-blue-100 text-blue-900">
+                    <tr>
+                      <th className="px-3 py-2 rounded-tl-lg">Kolom</th>
+                      <th className="px-3 py-2">Deskripsi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-700">
+                    <tr className="border-b border-blue-200">
+                      <td className="px-3 py-2 font-mono">Timestamp</td>
+                      <td className="px-3 py-2">Waktu prediksi</td>
+                    </tr>
+                    <tr className="border-b border-blue-200">
+                      <td className="px-3 py-2 font-mono">PatientName</td>
+                      <td className="px-3 py-2">Nama pasien</td>
+                    </tr>
+                    <tr className="border-b border-blue-200">
+                      <td className="px-3 py-2 font-mono">Glucose, BMI, Age, dll</td>
+                      <td className="px-3 py-2">Parameter klinis</td>
+                    </tr>
+                    <tr className="border-b border-blue-200">
+                      <td className="px-3 py-2 font-mono">Prediction_Result</td>
+                      <td className="px-3 py-2">Hasil prediksi (0/1)</td>
+                    </tr>
+                    <tr>
+                      <td className="px-3 py-2 font-mono rounded-bl-lg">Risk_Level</td>
+                      <td className="px-3 py-2 rounded-br-lg">Kategori risiko</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Privacy Notice */}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mt-8">
@@ -380,9 +327,9 @@ export function HistoryPage() {
                   🔒 Kerahasiaan Data Pasien Terjaga
                 </p>
                 <p className="text-sm text-blue-700 mt-1">
-                  Halaman ini hanya menampilkan informasi dasar (nama, tanggal, dan jenis kelamin). 
-                  Hasil pemeriksaan medis yang bersifat rahasia tidak ditampilkan di sini untuk 
-                  melindungi privasi pasien.
+                  Data disimpan secara lokal di komputer Anda dalam format CSV. 
+                  File ini dapat dibuka dengan Excel untuk analisis lebih lanjut, 
+                  atau diarsipkan sebagai dokumentasi medis.
                 </p>
               </div>
             </div>
