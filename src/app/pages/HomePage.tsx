@@ -21,7 +21,7 @@ interface HistoryData {
   createdAt: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = 'https://adhitdhit19.pythonanywhere.com';
 
 export function HomePage() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
@@ -33,29 +33,39 @@ export function HomePage() {
   const [historyLoading, setHistoryLoading] = useState(true);
 
   // Fetch data history dari backend
-  useEffect(() => {
-    const fetchRecentHistory = async () => {
-      try {
-        setHistoryLoading(true);
-        const response = await fetch(`${API_URL}/history`);
-        const result = await response.json();
-        
-        if (result.success) {
-          const latest = result.data.slice(0, 4);
-          setRecentHistory(latest);
-        }
-      } catch (error) {
-        console.error('Error fetching history:', error);
-      } finally {
-        setHistoryLoading(false);
-      }
-    };
+ useEffect(() => {
+  const fetchRecentHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      
 
-    fetchRecentHistory();
-  }, []);
+      const response = await fetch(
+        `https://adhitdhit19.pythonanywhere.com/api/history`, 
+        { 
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        const latest = result.data.slice(0, 4);
+        setRecentHistory(latest);
+        console.log('✅ History loaded:', latest.length, 'items');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  fetchRecentHistory();
+}, []);
 
   // Format tanggal
-  // Format tanggal - Simple & Clean
+  
 const formatDate = (dateString: string) => {
   if (!dateString) return '-';
   

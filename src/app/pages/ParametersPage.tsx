@@ -74,7 +74,7 @@ export function ParametersPage() {
       age: null,
     });
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = 'https://adhitdhit19.pythonanywhere.com';
 
   // Handle scroll for back-to-top button
   useEffect(() => {
@@ -186,14 +186,15 @@ const saveToMongoDB = async (
     console.log('📤 Sending to PythonAnywhere:', payload);
 
    
-    const response = await axios.post(
-      `${API_URL}/api/predict`, 
-      payload,
-      {
-        timeout: 60000,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
+ 
+const response = await axios.post(
+  'https://adhitdhit19.pythonanywhere.com/api/predict',
+  payload,
+  {
+    timeout: 60000,  // 60 detik (handle cold start)
+    headers: { 'Content-Type': 'application/json' }
+  }
+);
 
     console.log('✅ PythonAnywhere Response:', response.data);
 
