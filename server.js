@@ -33,7 +33,7 @@ app.get('/api/stats', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Dataset Hasil');
+    const collection = db.collection('Dataset Normalisasi');
     
     const total = await collection.countDocuments({});
     const diabetes = await collection.countDocuments({ Outcome_Actual: 1 });
@@ -61,7 +61,7 @@ app.get('/api/data', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Dataset Hasil');
+    const collection = db.collection('Dataset Normalisasi');
     const query = req.query.split ? { Split: req.query.split } : {};
     const data = await collection.find(query).toArray();
     
@@ -79,7 +79,7 @@ app.get('/api/feature-means', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
     
-    const collection = db.collection('Dataset Hasil');
+    const collection = db.collection('Dataset Normalisasi');
     
     const stats = await collection.aggregate([
       {
@@ -172,7 +172,7 @@ app.post('/api/predict', async (req, res) => {
     const { prediction, probability, riskScore, riskLevel, recommendations } = mlApiResponse.data;
 
     // Simpan ke MongoDB
-    const PredictionCollection = db.collection('Dataset Normalisasi');
+    const PredictionCollection = db.collection('Dataset Hasil');
     
     const newPrediction = {
       patientName: patientName || 'Tanpa Nama',
@@ -200,7 +200,7 @@ app.post('/api/predict', async (req, res) => {
     };
 
     const saved = await PredictionCollection.insertOne(newPrediction);
-    console.log(`✅ [${transactionId}] Saved to Dataset Normalisasi:`, saved.insertedId);
+    console.log(`✅ [${transactionId}] Saved to Dataset Hasil:`, saved.insertedId);
 
     res.json({
       success: true,
@@ -234,7 +234,7 @@ app.get('/api/prediction/:id', async (req, res) => {
     }
 
     const { id } = req.params;
-    const collection = db.collection('Dataset Normalisasi');
+    const collection = db.collection('Dataset Hasil');
     
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, error: 'Invalid ID format' });
@@ -262,7 +262,7 @@ app.get('/api/history', async (req, res) => {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
 
-    const PredictionCollection = db.collection('Dataset Normalisasi');
+    const PredictionCollection = db.collection('Dataset Hasil');
     
     const history = await PredictionCollection.find({})
       .sort({ createdAt: -1 })
@@ -296,7 +296,7 @@ app.get('/api/history/:patientName', async (req, res) => {
     }
 
     const { patientName } = req.params;
-    const PredictionCollection = db.collection('Dataset Normalisasi');
+    const PredictionCollection = db.collection('Dataset Hasil');
     
     const history = await PredictionCollection.find({
       patientName: { $regex: patientName, $options: 'i' }
