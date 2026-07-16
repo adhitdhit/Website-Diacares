@@ -2,45 +2,99 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import axios from 'axios';
-
 import dotenv from 'dotenv';
 
+dotenv.config(); // ← WAJIB!
+
 const app = express();
-app.use(cors({
-  origin: [
-    'https://angler-dawdler-aside.ngrok-free.dev',  
-    'http://localhost:5173',                          
-    'http://127.0.0.1:5173',
-    '*'                                              
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors({ origin: ['*'], credentials: true }));
 app.use(express.json());
-   
-// SIMPAN DB 
+
 let db;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-// BACA MONGODB_URI DARI .env
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://horanghae212_db_user:dbUser@cluster0.zdovhtz.mongodb.net/?appName=Cluster0";
+if (!MONGODB_URI) {
+  console.error('❌ MONGODB_URI not set!');
+  process.exit(1);
+}
 
-// CONNECT 
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('✅ Connected to MongoDB');
-    
-    // ✅ ASSIGN DB INSTANCE
     db = mongoose.connection.db;
-    
-    console.log('📂 Database Name:', db.databaseName);
-    console.log('🗄️ Database instance ready');
   })
   .catch(err => {
-    console.error('❌ MongoDB connection error:', err.message);
-    console.error(' MONGODB_URI exists:', !!process.env.MONGODB_URI);
+    console.error('❌ MongoDB error:', err.message);
     process.exit(1);
   });
+
+// === ROUTE: POST /api/predict (FIXED) ===
+app.post('/api/predict', async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
+
+    const {
+      Glucose, Age, BloodPressure, BMI, Insulin,
+      Pregnancies, SkinThickness, DiabetesPedigreeFunction,
+      patientName, patientGender, source
+    } = req.body;
+
+    // Format payload untuk Gradio API
+    const gradioPayload = {
+      data: [
+        Pregnancies ?? 0,
+        Glucose ?? 0,
+        BloodPressure ?? 0,
+        SkinThickness ?? 0,
+        Insulin ?? 0,
+        BMI ?? 0,
+        DiabetesPedigreeFunction ?? 0,
+        Age ?? 0,
+        patientName || 'Anonim'
+      ],
+      fn_index: 0
+    };
+
+    const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
+    
+    const mlApiResponse = await axios.post(`${HF_SPACE_URL}/api/predict`, gradioPayload, {
+      timeout: 15000,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // Parse response Gradio
+    const [prediction, probability, riskScore, riskLevel] = mlApiResponse.data.data;
+
+    // Simpan ke MongoDB
+    const saved = await db.collection('Dataset Hasil').insertOne({
+      patientName: patientName || 'Tanpa Nama',
+      patientGender: patientGender || 'Tidak Diketahui',
+      Pregnancies, Glucose, BloodPressure, SkinThickness,
+      Insulin, BMI, DiabetesPedigreeFunction, Age,
+      Prediction_Result: prediction,
+      Risk_Score: riskScore,
+      Risk_Level: riskLevel,
+      Probability: probability,
+      source: source || 'web_app',
+      status: 'completed',
+      createdAt: new Date()
+    });
+
+    res.json({
+      success: true,
+      savedId: saved.insertedId.toString(),
+      prediction,
+      probability,
+      riskScore,
+      riskLevel,
+      message: 'Prediksi berhasil!'
+    });
+
+  } catch (error) {
+    console.error('❌ Predict error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // === ROUTE 1: GET stats ===
 app.get('/api/stats', async (req, res) => {
@@ -148,12 +202,7 @@ app.get('/api/feature-means', async (req, res) => {
 // === ROUTE 4: POST predict ===
 app.post('/api/predict', async (req, res) => {
   try {
-    if (!db) {
-      return res.status(500).json({ success: false, error: 'Database not connected' });
-    }
-
-    const transactionId = req.body.transactionId || `txn_${Date.now()}`;
-    console.log(`📥 [${transactionId}] Received predict request`);
+    if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
 
     const {
       Glucose, Age, BloodPressure, BMI, Insulin,
@@ -161,82 +210,59 @@ app.post('/api/predict', async (req, res) => {
       patientName, patientGender, source
     } = req.body;
 
-    // Kirim data mentah (null tetap null)
-    const mlPayload = {
-      Pregnancies: Pregnancies ?? null,
-      Glucose: Glucose ?? null,
-      BloodPressure: BloodPressure ?? null,
-      SkinThickness: SkinThickness ?? null,
-      Insulin: Insulin ?? null,
-      BMI: BMI ?? null,
-      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? null,
-      Age: Age ?? null
+    // Format payload untuk Gradio API
+    const gradioPayload = {
+      data: [
+        Pregnancies ?? 0,
+        Glucose ?? 0,
+        BloodPressure ?? 0,
+        SkinThickness ?? 0,
+        Insulin ?? 0,
+        BMI ?? 0,
+        DiabetesPedigreeFunction ?? 0,
+        Age ?? 0,
+        patientName || 'Anonim'
+      ],
+      fn_index: 0
     };
 
-    console.log('📤 Sending RAW data to ML API:', mlPayload);
-
-    const VITE_API_URL = 'https://dhitadhit-diacares-api.hf.space';
+    const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
     
-    const mlApiResponse = await axios.post(VERCEL_API_URL, mlPayload, {
-      timeout: 15000
+    const mlApiResponse = await axios.post(`${HF_SPACE_URL}/api/predict`, gradioPayload, {
+      timeout: 15000,
+      headers: { 'Content-Type': 'application/json' }
     });
 
-    if (!mlApiResponse.data.success) {
-      throw new Error('ML API prediction failed');
-    }
-
-    const { prediction, probability, riskScore, riskLevel, recommendations } = mlApiResponse.data;
+    // Parse response Gradio
+    const [prediction, probability, riskScore, riskLevel] = mlApiResponse.data.data;
 
     // Simpan ke MongoDB
-    const PredictionCollection = db.collection('Dataset Hasil');
-    
-    const newPrediction = {
+    const saved = await db.collection('Dataset Hasil').insertOne({
       patientName: patientName || 'Tanpa Nama',
       patientGender: patientGender || 'Tidak Diketahui',
-      
-      Pregnancies: Pregnancies ?? null,
-      Glucose: Glucose ?? null,
-      BloodPressure: BloodPressure ?? null,
-      SkinThickness: SkinThickness ?? null,
-      Insulin: Insulin ?? null,
-      BMI: BMI ?? null,
-      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? null,
-      Age: Age ?? null,
-      
+      Pregnancies, Glucose, BloodPressure, SkinThickness,
+      Insulin, BMI, DiabetesPedigreeFunction, Age,
       Prediction_Result: prediction,
       Risk_Score: riskScore,
       Risk_Level: riskLevel,
-      Recommendations: recommendations,
       Probability: probability,
-      
       source: source || 'web_app',
       status: 'completed',
-      transactionId: transactionId,
       createdAt: new Date()
-    };
-
-    const saved = await PredictionCollection.insertOne(newPrediction);
-    console.log(`✅ [${transactionId}] Saved to Daset Hasil:`, saved.insertedId);
+    });
 
     res.json({
       success: true,
       savedId: saved.insertedId.toString(),
-      transactionId: transactionId,
       prediction,
       probability,
       riskScore,
       riskLevel,
-      recommendations,
       message: 'Prediksi berhasil!'
     });
 
   } catch (error) {
-    console.error('❌ Error POST /api/predict:', error.message);
-    
-    if (error.code === 'ECONNABORTED') {
-      return res.status(504).json({ success: false, error: 'ML API timeout.' });
-    }
-    
+    console.error('❌ Predict error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
