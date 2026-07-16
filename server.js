@@ -36,10 +36,10 @@ app.post('/api/predict', async (req, res) => {
     const {
       Glucose, Age, BloodPressure, BMI, Insulin,
       Pregnancies, SkinThickness, DiabetesPedigreeFunction,
-      patientName, patientGender, source
+      patientName, patientGender
     } = req.body;
 
-    // Format payload untuk Gradio API
+    // FORMAT PAYLOAD UNTUK GRADIO API
     const gradioPayload = {
       data: [
         Pregnancies ?? 0,
@@ -52,19 +52,27 @@ app.post('/api/predict', async (req, res) => {
         Age ?? 0,
         patientName || 'Anonim'
       ],
-      fn_index: 0
+      fn_index: 0  // Fungsi pertama di Gradio
     };
 
     const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
     
-    const mlApiResponse = await axios.post(`${HF_SPACE_URL}/api/predict`, gradioPayload, {
-      timeout: 15000,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const mlApiResponse = await axios.post(
+      `${HF_SPACE_URL}/api/predict`,  // Endpoint khusus Gradio
+      gradioPayload,
+      { timeout: 15000 }
+    );
 
-    // Parse response Gradio
-    const [prediction, probability, riskScore, riskLevel] = mlApiResponse.data.data;
+    // PARSE RESPONSE GRADIO (format beda!)
+    const result = mlApiResponse.data.data; 
+    const prediction = result[0];
+    const probability = result[1];
+    const riskScore = result[2];
+    const riskLevel = result[3];
 
+   
+
+   
     // Simpan ke MongoDB
     const saved = await db.collection('Dataset Hasil').insertOne({
       patientName: patientName || 'Tanpa Nama',
@@ -80,13 +88,13 @@ app.post('/api/predict', async (req, res) => {
       createdAt: new Date()
     });
 
-    res.json({
+     res.json({
       success: true,
-      savedId: saved.insertedId.toString(),
       prediction,
       probability,
       riskScore,
       riskLevel,
+      recommendations: ['Konsultasi dokter'],
       message: 'Prediksi berhasil!'
     });
 
