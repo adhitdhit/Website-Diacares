@@ -4,7 +4,7 @@ import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
 
-dotenv.config(); // ← WAJIB!
+dotenv.config();
 
 const app = express();
 app.use(cors({ origin: ['*'], credentials: true }));
@@ -28,7 +28,7 @@ mongoose.connect(MONGODB_URI)
     process.exit(1);
   });
 
-// === ROUTE: POST /api/predict (FIXED) ===
+// === ROUTE: POST /api/predict (PYTHONANYWHERE - REST API) ===
 app.post('/api/predict', async (req, res) => {
   try {
     if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
@@ -39,27 +39,27 @@ app.post('/api/predict', async (req, res) => {
       patientName, patientGender, source
     } = req.body;
 
-    const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
+    // ✅ URL PYTHONANYWHERE (GANTI DENGAN URL LU!)
+    const ML_API_URL = 'https://adhitdhit19.pythonanywhere.com';
     
+    // ✅ Format payload REST API biasa (bukan Gradio!)
     const payload = {
-      data: [
-        Pregnancies ?? 0,
-        Glucose ?? 0,
-        BloodPressure ?? 0,
-        SkinThickness ?? 0,
-        Insulin ?? 0,
-        BMI ?? 0,
-        DiabetesPedigreeFunction ?? 0,
-        Age ?? 0,
-        patientName || 'Anonim'
-      ],
-      fn_index: 0
+      Pregnancies: Pregnancies ?? 0,
+      Glucose: Glucose ?? 0,
+      BloodPressure: BloodPressure ?? 0,
+      SkinThickness: SkinThickness ?? 0,
+      Insulin: Insulin ?? 0,
+      BMI: BMI ?? 0,
+      DiabetesPedigreeFunction: DiabetesPedigreeFunction ?? 0,
+      Age: Age ?? 0,
+      patientName: patientName || 'Anonim',
+      patientGender: patientGender || '-'
     };
 
-    console.log('📤 Sending to HF Space...');
+    console.log('📤 Sending to PythonAnywhere:', payload);
 
     const response = await axios.post(
-      `${HF_SPACE_URL}/api/predict`,
+      `${ML_API_URL}/api/predict`,  // Endpoint Flask biasa
       payload,
       { 
         timeout: 30000,
@@ -67,18 +67,19 @@ app.post('/api/predict', async (req, res) => {
       }
     );
 
-    console.log(' HF Response:', JSON.stringify(response.data, null, 2));
+    console.log('✅ PythonAnywhere Response:', JSON.stringify(response.data, null, 2));
 
-    // ✅ PARSE ARRAY DARI GRADIO
-    const resultArray = response.data.data;
-    
-    const prediction = resultArray[0];
-    const probability = resultArray[1];
-    const riskScore = resultArray[2];
-    const riskLevel = resultArray[3];
-    const recommendations = resultArray[4] || ['Konsultasi dokter'];
+    // ✅ Parse response JSON biasa (bukan array Gradio!)
+    const { 
+      prediction, 
+      probability, 
+      riskScore, 
+      riskLevel, 
+      recommendations,
+      savedId 
+    } = response.data;
 
-    // Simpan ke MongoDB
+    // Simpan ke MongoDB (backup lokal)
     const saved = await db.collection('Dataset Hasil').insertOne({
       patientName: patientName || 'Tanpa Nama',
       patientGender: patientGender || 'Tidak Diketahui',
@@ -94,7 +95,7 @@ app.post('/api/predict', async (req, res) => {
       Risk_Score: riskScore || 0,
       Risk_Level: riskLevel || 'UNKNOWN',
       Probability: probability || 0,
-      Recommendations: recommendations,
+      Recommendations: recommendations || [],
       source: source || 'web_app',
       status: 'completed',
       createdAt: new Date()
@@ -224,78 +225,9 @@ app.get('/api/feature-means', async (req, res) => {
   }
 });
 
-// === ROUTE 4: POST predict ===
-app.post('/api/predict', async (req, res) => {
-  try {
-    if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
-
-    const {
-      Glucose, Age, BloodPressure, BMI, Insulin,
-      Pregnancies, SkinThickness, DiabetesPedigreeFunction,
-      patientName, patientGender, source
-    } = req.body;
-
-    // Format payload untuk Gradio API
-    const gradioPayload = {
-      data: [
-        Pregnancies ?? 0,
-        Glucose ?? 0,
-        BloodPressure ?? 0,
-        SkinThickness ?? 0,
-        Insulin ?? 0,
-        BMI ?? 0,
-        DiabetesPedigreeFunction ?? 0,
-        Age ?? 0,
-        patientName || 'Anonim'
-      ],
-      fn_index: 0
-    };
-
-    const HF_SPACE_URL = 'https://dhitadhit-diacares-api.hf.space';
-    
-    const mlApiResponse = await axios.post(`${HF_SPACE_URL}/api/predict`, gradioPayload, {
-      timeout: 15000,
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    // Parse response Gradio
-    const [prediction, probability, riskScore, riskLevel] = mlApiResponse.data.data;
-
-    // Simpan ke MongoDB
-    const saved = await db.collection('Dataset Hasil').insertOne({
-      patientName: patientName || 'Tanpa Nama',
-      patientGender: patientGender || 'Tidak Diketahui',
-      Pregnancies, Glucose, BloodPressure, SkinThickness,
-      Insulin, BMI, DiabetesPedigreeFunction, Age,
-      Prediction_Result: prediction,
-      Risk_Score: riskScore,
-      Risk_Level: riskLevel,
-      Probability: probability,
-      source: source || 'web_app',
-      status: 'completed',
-      createdAt: new Date()
-    });
-
-    res.json({
-      success: true,
-      savedId: saved.insertedId.toString(),
-      prediction,
-      probability,
-      riskScore,
-      riskLevel,
-      message: 'Prediksi berhasil!'
-    });
-
-  } catch (error) {
-    console.error('❌ Predict error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// === ROUTE 5: GET prediction by ID ===
+// === ROUTE 4: GET prediction by ID ===
 app.get('/api/prediction/:id', async (req, res) => {
   try {
-    // ✅ CEK DB CONNECTION
     if (!db) {
       return res.status(500).json({ success: false, error: 'Database not connected' });
     }
@@ -322,7 +254,7 @@ app.get('/api/prediction/:id', async (req, res) => {
   }
 });
 
-// === ROUTE 6: GET ALL HISTORY ===
+// === ROUTE 5: GET ALL HISTORY ===
 app.get('/api/history', async (req, res) => {
   try {
     if (!db) {
@@ -355,7 +287,7 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// === ROUTE 7: GET HISTORY BY PATIENT NAME ===
+// === ROUTE 6: GET HISTORY BY PATIENT NAME ===
 app.get('/api/history/:patientName', async (req, res) => {
   try {
     if (!db) {
@@ -391,14 +323,13 @@ app.get('/api/history/:patientName', async (req, res) => {
   }
 });
 
-// === ROUTE 8: CLEANUP DUPLICATES (Admin Only) ===
+// === ROUTE 7: CLEANUP DUPLICATES (Admin Only) ===
 app.post('/api/admin/cleanup-duplicates', async (req, res) => {
   try {
     if (!db) return res.status(500).json({ success: false, error: 'DB not connected' });
 
     const PredictionCollection = db.collection('Dataset Hasil');
     
-    // Cari data dengan patientName + param sama, ambil yang terbaru
     const pipeline = [
       {
         $group: {
@@ -419,7 +350,6 @@ app.post('/api/admin/cleanup-duplicates', async (req, res) => {
     let deleted = 0;
 
     for (const dup of duplicates) {
-      // Urutkan by createdAt, hapus semua kecuali yang terbaru
       dup.docs.sort((a, b) => b.createdAt - a.createdAt);
       const toDelete = dup.docs.slice(1).map(d => d._id);
       
@@ -435,7 +365,6 @@ app.post('/api/admin/cleanup-duplicates', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
 
 // Start server
 const PORT = process.env.PORT || 5000;
